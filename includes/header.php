@@ -202,7 +202,7 @@ clearSuccess();
             <nav class="desktop-nav">
                 <ul>
                     <li><a href="index.php">Accueil</a></li>
-                    <li><a href="#services">Services</a></li>
+                    <li><a href="cars_view.php">Services</a></li>
                     <li><a href="#apropos">À propos</a></li>
                     <li><a href="#portfolio">Portfolio</a></li>
                     <li><a href="#contact">Contact</a></li>

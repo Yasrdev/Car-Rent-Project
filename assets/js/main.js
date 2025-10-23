@@ -332,7 +332,6 @@ class AppManager {
     // ===== FONCTIONNALITÉS SPÉCIFIQUES POUR CARS_VIEW =====
     setupCarsViewFeatures() {
         this.setupCarFilters();
-        this.setupCarReservations();
         this.setupCarCardInteractions();
     }
 
@@ -385,44 +384,8 @@ class AppManager {
         }
     }
 
-    // Réservations de voitures
-    setupCarReservations() {
-        // Cette fonction est appelée par les boutons de réservation dans le HTML
-        window.reserveCar = this.reserveCar.bind(this);
-        window.openAuthModal = this.openModal.bind(this);
-    }
 
-    async reserveCar(carId) {
-        if (!confirm('Voulez-vous vraiment réserver cette voiture ?')) {
-            return;
-        }
-
-        try {
-            const response = await fetch('reserve_car.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'car_id=' + carId
-            });
-
-            const data = await response.json();
-            
-            if (data.success) {
-                this.showNotification('Réservation effectuée avec succès !', 'success');
-                // Recharger la page après un délai
-                setTimeout(() => {
-                    window.location.reload();
-                }, 2000);
-            } else {
-                this.showNotification('Erreur lors de la réservation: ' + data.message, 'error');
-            }
-        } catch (error) {
-            console.error('Erreur:', error);
-            this.showNotification('Erreur réseau lors de la réservation', 'error');
-        }
-    }
-
+    
     // Interactions avec les cartes de voitures
     setupCarCardInteractions() {
         const carCards = document.querySelectorAll('.car-card');
@@ -676,3 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
         subtree: true
     });
 });
+
+
+
+    

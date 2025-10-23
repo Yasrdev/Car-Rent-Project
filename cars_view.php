@@ -1,69 +1,90 @@
 <?php
-// cars_view.php
-require_once 'config/config.php';
 
-// Récupérer les catégories pour le filtre
-$categories = [];
-try {
-    $stmt = $pdo->query("SELECT id, name FROM categories ORDER BY name");
-    $categories = $stmt->fetchAll();
-} catch (PDOException $e) {
-    // Gérer l'erreur silencieusement
-}
+    // cars_view.php
+    require_once 'config/config.php';
 
-// Construire la requête SQL avec filtres
-$whereConditions = [];
-$params = [];
+    // Paramètres de pagination
+    $carsPerPage = 8;
+    $currentPage = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+    $offset = ($currentPage - 1) * $carsPerPage;
 
-// Filtre par catégorie
-if (isset($_GET['category']) && !empty($_GET['category'])) {
-    $whereConditions[] = "c.category_id = ?";
-    $params[] = $_GET['category'];
-}
+    // Récupérer le nombre total de voitures
+    $totalCars = 0;
+    try {
+        $countSql = "SELECT COUNT(*) as total FROM cars c";
+        $countStmt = $pdo->query($countSql);
+        $totalCars = $countStmt->fetch()['total'];
+    } catch (PDOException $e) {
+        error_log("Erreur lors du comptage des voitures: " . $e->getMessage());
+    }
 
-// Filtre par statut
-if (isset($_GET['status']) && !empty($_GET['status'])) {
-    $whereConditions[] = "c.status = ?";
-    $params[] = $_GET['status'];
-}
+    // Calculer le nombre total de pages
+    $totalPages = ceil($totalCars / $carsPerPage);
 
-// Filtre par prix
-if (isset($_GET['price_min']) && !empty($_GET['price_min'])) {
-    $whereConditions[] = "c.price >= ?";
-    $params[] = $_GET['price_min'];
-}
+    // Récupérer les catégories pour le filtre
+    $categories = [];
+    try {
+        $stmt = $pdo->query("SELECT id, name FROM categories ORDER BY name");
+        $categories = $stmt->fetchAll();
+    } catch (PDOException $e) {
+        // Gérer l'erreur silencieusement
+    }
 
-if (isset($_GET['price_max']) && !empty($_GET['price_max'])) {
-    $whereConditions[] = "c.price <= ?";
-    $params[] = $_GET['price_max'];
-}
+    // Construire la requête SQL avec filtres
+    $whereConditions = [];
+    $params = [];
 
-// Recherche par titre
-if (isset($_GET['search']) && !empty($_GET['search'])) {
-    $whereConditions[] = "c.title LIKE ?";
-    $params[] = '%' . $_GET['search'] . '%';
-}
+    // Filtre par catégorie
+    if (isset($_GET['category']) && !empty($_GET['category'])) {
+        $whereConditions[] = "c.category_id = ?";
+        $params[] = $_GET['category'];
+    }
 
-// Construire la requête finale
-$sql = "SELECT c.*, cat.name as category_name, cat.icon 
-        FROM cars c 
-        LEFT JOIN categories cat ON c.category_id = cat.id";
+    // Filtre par statut
+    if (isset($_GET['status']) && !empty($_GET['status'])) {
+        $whereConditions[] = "c.status = ?";
+        $params[] = $_GET['status'];
+    }
 
-if (!empty($whereConditions)) {
-    $sql .= " WHERE " . implode(" AND ", $whereConditions);
-}
+    // Filtre par prix
+    if (isset($_GET['price_min']) && !empty($_GET['price_min'])) {
+        $whereConditions[] = "c.price >= ?";
+        $params[] = $_GET['price_min'];
+    }
 
-$sql .= " ORDER BY c.created_at DESC";
+    if (isset($_GET['price_max']) && !empty($_GET['price_max'])) {
+        $whereConditions[] = "c.price <= ?";
+        $params[] = $_GET['price_max'];
+    }
 
-// Exécuter la requête
-try {
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    $cars = $stmt->fetchAll();
-} catch (PDOException $e) {
-    $cars = [];
-    error_log("Erreur lors de la récupération des voitures: " . $e->getMessage());
-}
+    // Recherche par titre
+    if (isset($_GET['search']) && !empty($_GET['search'])) {
+        $whereConditions[] = "c.title LIKE ?";
+        $params[] = '%' . $_GET['search'] . '%';
+    }
+
+    // Construire la requête finale avec pagination
+    $sql = "SELECT c.*, cat.name as category_name, cat.icon 
+            FROM cars c 
+            LEFT JOIN categories cat ON c.category_id = cat.id";
+
+    if (!empty($whereConditions)) {
+        $sql .= " WHERE " . implode(" AND ", $whereConditions);
+    }
+
+    $sql .= " ORDER BY c.created_at DESC LIMIT ? OFFSET ?";
+    $params[] = $carsPerPage;
+    $params[] = $offset;
+
+    // Exécuter la requête
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        $cars = $stmt->fetchAll();
+    } catch (PDOException $e) {
+        $cars = [];
+        error_log("Erreur lors de la récupération des voitures: " . $e->getMessage());
+    }
 ?>
 
     <?php include 'includes/header.php'; ?>
@@ -165,7 +186,10 @@ try {
             <div class="results-header">
                 <div class="results-count">
                     <i class="fas fa-car"></i>
-                    <span><?php echo count($cars); ?> voiture(s) trouvée(s)</span>
+                    <!-- Information de pagination -->
+                        <div class="pagination-info">
+                            Affichage des voitures <?php echo $offset + 1; ?> à <?php echo min($offset + count($cars), $totalCars); ?> sur <?php echo $totalCars; ?> au total
+                        </div>
                 </div>
                 
                 <?php if (!empty($_GET)): ?>
@@ -274,196 +298,205 @@ try {
                                     <span class="price-period">/jour</span>
                                 </div>
 
-                                <!-- Bouton de réservation -->
-                                <div class="car-actions">
-                                    <?php if ($car['status'] == 'available'): ?>
-                                        <?php if (isLoggedIn()): ?>
-                                            <button class="btn btn-reserve" 
-                                                    onclick="reserveCar(<?php echo $car['id']; ?>)">
-                                                <i class="fas fa-calendar-check"></i>
-                                                <span>Réserver maintenant</span>
-                                            </button>
+                               <!-- Bouton de réservation -->
+                                    <!-- <div class="car-actions">
+                                        <?php if ($car['status'] == 'available'): ?>
+                                            <?php if (isLoggedIn()): ?>
+                                                <button class="btn btn-reserve" 
+                                                        onclick="reserveCar(<?php echo $car['id']; ?>)">
+                                                    <i class="fas fa-calendar-check"></i>
+                                                    <span>Réserver maintenant</span>
+                                                </button>
+                                            <?php else: ?>
+                                                <button class="btn btn-reserve" 
+                                                        onclick="openAuthModal()">
+                                                    <i class="fas fa-sign-in-alt"></i>
+                                                    <span>Se connecter pour réserver</span>
+                                                </button>
+                                            <?php endif; ?>
                                         <?php else: ?>
-                                            <button class="btn btn-reserve" 
-                                                    onclick="openAuthModal()">
-                                                <i class="fas fa-sign-in-alt"></i>
-                                                <span>Se connecter pour réserver</span>
+                                            <button class="btn btn-disabled" disabled>
+                                                <i class="fas fa-times"></i>
+                                                <span>Indisponible</span>
                                             </button>
                                         <?php endif; ?>
-                                    <?php else: ?>
-                                        <button class="btn btn-disabled" disabled>
-                                            <i class="fas fa-times"></i>
-                                            <span>Indisponible</span>
-                                        </button>
-                                    <?php endif; ?>
+                                    </div> -->
+
+                                    <!-- Bouton de détails -->
+                                <div class="car-actions">
+                                    <button class="btn btn-reserve" onclick="showCarDetails(<?php echo $car['id']; ?>)">
+                                        <i class="fas fa-info-circle"></i>
+                                        <span>Voir détails</span>
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
+</section>
+            <!-- Pagination -->
+    <?php if ($totalPages > 1): ?>
+        <div class="pagination">
+            <!-- Bouton Précédent -->
+            <button class="pagination-btn prev <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>" 
+                    <?php echo $currentPage <= 1 ? 'disabled' : ''; ?>
+                    onclick="changePage(<?php echo $currentPage - 1; ?>)">
+                <i class="fas fa-chevron-left"></i>
+                Précédent
+            </button>
 
-            <!-- Pagination (optionnelle) -->
-            <?php if (count($cars) > 0): ?>
-                <div class="pagination">
-                    <button class="pagination-btn prev" disabled>
-                        <i class="fas fa-chevron-left"></i>
-                        Précédent
-                    </button>
-                    <div class="pagination-numbers">
-                        <span class="pagination-number active">1</span>
-                        <span class="pagination-number">2</span>
-                        <span class="pagination-number">3</span>
-                        <span class="pagination-dots">...</span>
-                        <span class="pagination-number">10</span>
-                    </div>
-                    <button class="pagination-btn next">
-                        Suivant
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            <?php endif; ?>
+            <!-- Numéros de page -->
+            <div class="pagination-numbers">
+                <?php
+                // Afficher les numéros de page
+                $startPage = max(1, $currentPage - 2);
+                $endPage = min($totalPages, $currentPage + 2);
+                
+                // Première page
+                if ($startPage > 1) {
+                    echo '<span class="pagination-number ' . ($currentPage == 1 ? 'active' : '') . '" onclick="changePage(1)">1</span>';
+                    if ($startPage > 2) {
+                        echo '<span class="pagination-dots">...</span>';
+                    }
+                }
+                
+                // Pages autour de la page courante
+                for ($i = $startPage; $i <= $endPage; $i++) {
+                    echo '<span class="pagination-number ' . ($currentPage == $i ? 'active' : '') . '" onclick="changePage(' . $i . ')">' . $i . '</span>';
+                }
+                
+                // Dernière page
+                if ($endPage < $totalPages) {
+                    if ($endPage < $totalPages - 1) {
+                        echo '<span class="pagination-dots">...</span>';
+                    }
+                    echo '<span class="pagination-number ' . ($currentPage == $totalPages ? 'active' : '') . '" onclick="changePage(' . $totalPages . ')">' . $totalPages . '</span>';
+                }
+                ?>
+            </div>
+
+            <!-- Bouton Suivant -->
+            <button class="pagination-btn next <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>" 
+                    <?php echo $currentPage >= $totalPages ? 'disabled' : ''; ?>
+                    onclick="changePage(<?php echo $currentPage + 1; ?>)">
+                Suivant
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
-    </section><br><br>
+    <?php endif; ?>
+<br><br>
 
-    <?php include 'includes/footer.php'; ?>
+<?php include 'includes/footer.php'; ?>
+    
+<script>
 
-    <!-- JS Personnalisé -->
- <?php include 'includes/footer.php'; ?>
-    <script>
-        // Fonction pour réserver une voiture
-        function reserveCar(carId) {
-            if (confirm('Voulez-vous vraiment réserver cette voiture ?')) {
-                // Ajouter un indicateur de chargement
-                const button = event.target.closest('.btn-reserve') || event.target;
-                const originalText = button.innerHTML;
-                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Réservation en cours...</span>';
-                button.disabled = true;
+    // ===== FONCTIONS DE PAGINATION =====
+function changePage(page) {
+    const url = new URL(window.location);
+    url.searchParams.set('page', page);
+    window.location.href = url.toString();
+}
 
-                fetch('reserve_car.php', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: 'car_id=' + carId
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showNotification('Réservation effectuée avec succès !', 'success');
-                        setTimeout(() => {
-                            location.reload();
-                        }, 2000);
-                    } else {
-                        showNotification('Erreur lors de la réservation: ' + data.message, 'error');
-                        button.innerHTML = originalText;
-                        button.disabled = false;
-                    }
-                })
-                .catch(error => {
-                    console.error('Erreur:', error);
-                    showNotification('Erreur réseau lors de la réservation', 'error');
-                    button.innerHTML = originalText;
-                    button.disabled = false;
-                });
-            }
-        }
+// ===== FONCTION POUR VOIR LES DÉTAILS =====
+function showCarDetails(carId) {
+    showNotification('Fonctionnalité de détails à implémenter pour la voiture ID: ' + carId, 'info');
+    // Ici vous pouvez rediriger vers une page de détails ou ouvrir un modal
+    // window.location.href = 'car_details.php?id=' + carId;
+}
 
-        // Fonction pour ouvrir le modal d'authentification
-        function openAuthModal() {
-            const authModal = document.getElementById('auth-modal');
-            if (authModal) {
-                authModal.classList.add('active');
-                document.body.style.overflow = 'hidden';
-            }
-        }
 
-        // Auto-submit du formulaire quand les sélecteurs changent
-        document.addEventListener('DOMContentLoaded', function() {
-            const selects = document.querySelectorAll('.filter-select');
-            selects.forEach(select => {
-                select.addEventListener('change', function() {
-                    document.getElementById('filter-form').submit();
-                });
-            });
-
-            // Recherche en temps réel
-            const searchInput = document.querySelector('.search-input');
-            if (searchInput) {
-                let searchTimeout;
-                searchInput.addEventListener('input', function() {
-                    clearTimeout(searchTimeout);
-                    searchTimeout = setTimeout(() => {
-                        document.getElementById('filter-form').submit();
-                    }, 800);
-                });
-            }
-
-            // Supprimer les filtres individuels
-            const removeFilters = document.querySelectorAll('.remove-filter');
-            removeFilters.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const filterName = this.dataset.filter;
-                    const url = new URL(window.location);
-                    url.searchParams.delete(filterName);
-                    window.location.href = url.toString();
-                });
-            });
-
-            // Animation des cartes au scroll
-            const observerOptions = {
-                threshold: 0.1,
-                rootMargin: '0px 0px -50px 0px'
-            };
-
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.style.opacity = '1';
-                        entry.target.style.transform = 'translateY(0)';
-                    }
-                });
-            }, observerOptions);
-
-            document.querySelectorAll('.car-card').forEach(card => {
-                card.style.opacity = '0';
-                card.style.transform = 'translateY(30px)';
-                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-                observer.observe(card);
-            });
-        });
-
-        // Fonction de notification personnalisée
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `custom-notification ${type}`;
-            notification.innerHTML = `
-                <div class="notification-content">
-                    <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
-                    <span>${message}</span>
-                </div>
-                <button class="notification-close" onclick="this.parentElement.remove()">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            // Animation d'entrée
-            setTimeout(() => {
-                notification.classList.add('show');
-            }, 10);
-            
-            // Supprimer automatiquement après 5 secondes
+// ===== FONCTIONS DE NOTIFICATION =====
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `custom-notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+            <span>${message}</span>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animation d'entrée
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+    
+    // Supprimer automatiquement après 5 secondes
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.classList.remove('show');
             setTimeout(() => {
                 if (notification.parentNode) {
-                    notification.classList.remove('show');
-                    setTimeout(() => {
-                        if (notification.parentNode) {
-                            notification.parentNode.removeChild(notification);
-                        }
-                    }, 300);
+                    notification.parentNode.removeChild(notification);
                 }
-            }, 5000);
+            }, 300);
         }
-    </script>
+    }, 5000);
+}
+
+// ===== FONCTIONS GLOBALES ACCESSIBLES DEPUIS LE HTML =====
+// Ces fonctions sont appelées directement depuis les attributs onclick dans le HTML
+window.showCarDetails = showCarDetails;
+window.changePage = changePage;
+window.showNotification = showNotification;
+
+// ===== GESTION DES ERREURS GLOBALES =====
+window.addEventListener('error', (e) => {
+    console.error('Erreur globale dans Cars View:', e.error);
+});
+
+// ===== OBSERVATEUR POUR LES NOUVEAUX ÉLÉMENTS (si contenu dynamique) =====
+const observer_ = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+        if (mutation.addedNodes.length) {
+            mutation.addedNodes.forEach((node) => {
+                if (node.nodeType === 1 && node.classList && node.classList.contains('car-card')) {
+                    // Réinitialiser les interactions si de nouvelles cartes sont ajoutées
+                    setupCardHoverEffects();
+                    animateCardsOnScroll();
+                }
+            });
+        }
+    });
+});
+
+// Démarrer l'observation après l'initialisation
+document.addEventListener('DOMContentLoaded', () => {
+    observer_.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+});
+
+// ===== FONCTIONS UTILITAIRES =====
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+function setButtonLoading(button, isLoading) {
+    if (isLoading) {
+        button.disabled = true;
+        button.classList.add('btn-loading');
+    } else {
+        button.disabled = false;
+        button.classList.remove('btn-loading');
+    }
+}
+
+
+
+</script>
