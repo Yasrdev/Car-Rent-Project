@@ -34,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['ajax'])) {
 }
 // Initialisation des variables
 $isLoggedIn = isLoggedIn();
+$role = $_SESSION['role'] ?? '';
 $userName = $_SESSION['first_name'] ?? '';
 
 // Traitement des formulaires - UNIQUEMENT pour la soumission normale
@@ -68,7 +69,7 @@ function handleLogin() {
     
     // Vérification des identifiants
     try {
-        $stmt = $pdo->prepare("SELECT id, first_name, last_name, email, password, status FROM users WHERE email = ?");
+        $stmt = $pdo->prepare("SELECT id, first_name, last_name, email, password, status, role FROM users WHERE email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch();
         
@@ -82,6 +83,9 @@ function handleLogin() {
             $_SESSION['first_name'] = $user['first_name'];
             $_SESSION['last_name'] = $user['last_name'];
             $_SESSION['email'] = $user['email'];
+            $_SESSION['status'] = $user['status'];
+            $_SESSION['role'] = $user['role'];
+
             addSuccess("Connexion réussie ! Bienvenue " . htmlspecialchars($user['first_name']));
             return true;
         } else {
@@ -202,10 +206,12 @@ clearSuccess();
             <nav class="desktop-nav">
                 <ul>
                     <li><a href="index.php">Accueil</a></li>
-                    <li><a href="cars_view.php">Services</a></li>
-                    <li><a href="#apropos">À propos</a></li>
-                    <li><a href="#portfolio">Portfolio</a></li>
+                    <li><a href="cars_view.php">Voitures</a></li>
                     <li><a href="#contact">Contact</a></li>
+                    <li><a href="#apropos">À propos</a></li>
+                    <?php if ( $isLoggedIn &&($role === 'manager' || $role === 'admin')): ?>
+                        <li><a href="dashboard.php">Dashboard</a></li>
+                    <?php endif; ?>
                 </ul>
             </nav>
 
@@ -231,8 +237,10 @@ clearSuccess();
                 <li><a href="index.php">Accueil</a></li>
                 <li><a href="#services">Services</a></li>
                 <li><a href="#apropos">À propos</a></li>
-                <li><a href="#portfolio">Portfolio</a></li>
                 <li><a href="#contact">Contact</a></li>
+                    <?php if ( $isLoggedIn &&($role === 'manager' || $role === 'admin')): ?>
+                        <li><a href="dashboard.php">Dashboard</a></li>
+                    <?php endif; ?>
             </ul>
             <div class="mobile-auth-buttons">
                 <?php if ($isLoggedIn): ?>

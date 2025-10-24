@@ -21,7 +21,7 @@ CREATE TABLE users (
 CREATE TABLE categories (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
-    icon VARCHAR(50) NOT NULL,
+    icon VARCHAR(50) NOT NULL, ---l inseration de l icon exemple fa-car 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
