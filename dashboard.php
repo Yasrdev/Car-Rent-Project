@@ -1,7 +1,7 @@
-<?php include_once('./includes/header.php'); ?>
+
 <?php
 require_once('./config/config.php');
-
+$PageName = 'dashboard';
 // Vérifier si l'utilisateur est connecté et a les droits d'accès
 if (!isLoggedIn() || ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'manager')) {
     header('Location: index.php');
@@ -96,725 +96,9 @@ try {
     $cars = [];
     error_log("Erreur lors de la récupération des voitures: " . $e->getMessage());
 }
+
 ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - ModernSite</title>
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* Styles spécifiques au dashboard */
-        .dashboard-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            width: 280px;
-            background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            height: 100vh;
-            position: fixed;
-            overflow-y: auto;
-            transition: var(--transition);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            z-index: 1000;
-        }
-
-        .sidebar-header {
-            padding: 25px 20px;
-            text-align: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .profile {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .profile-img {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid rgba(255, 255, 255, 0.2);
-            margin-bottom: 15px;
-        }
-
-        .profile-name {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .profile-role {
-            font-size: 0.9rem;
-            opacity: 0.8;
-            background: rgba(255, 255, 255, 0.1);
-            padding: 5px 15px;
-            border-radius: 20px;
-        }
-
-        .sidebar-menu {
-            padding: 20px 0;
-        }
-
-        .menu-item {
-            padding: 15px 25px;
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            transition: var(--transition);
-            border-left: 4px solid transparent;
-        }
-
-        .menu-item:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-left: 4px solid white;
-        }
-
-        .menu-item.active {
-            background-color: rgba(255, 255, 255, 0.15);
-            border-left: 4px solid white;
-        }
-
-        .menu-item i {
-            margin-right: 15px;
-            font-size: 1.2rem;
-            width: 20px;
-            text-align: center;
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 280px;
-            padding: 30px;
-            transition: var(--transition);
-        }
-
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
-        .page-title {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--dark-color);
-        }
-
-        .user-actions {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .notification-icon {
-            position: relative;
-            cursor: pointer;
-        }
-
-        .notification-badge {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-            background-color: #e63946;
-            color: white;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            font-size: 0.7rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .content-section {
-            display: none;
-            background-color: white;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            margin-bottom: 30px;
-        }
-
-        .content-section.active {
-            display: block;
-            animation: fadeIn 0.5s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            color: var(--primary-color);
-            display: flex;
-            align-items: center;
-        }
-
-        .section-title i {
-            margin-right: 10px;
-        }
-
-        .stats-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-            display: flex;
-            align-items: center;
-            transition: var(--transition);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 15px;
-            font-size: 1.5rem;
-            color: white;
-        }
-
-        .stat-info h3 {
-            font-size: 1.8rem;
-            margin-bottom: 5px;
-        }
-
-        .stat-info p {
-            color: var(--text-light);
-            font-size: 0.9rem;
-        }
-
-        .chart-container {
-            height: 300px;
-            margin-top: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-        }
-
-        /* ===== STYLES POUR LA GESTION DES VOITURES ===== */
-        .filter-section {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
-            border-radius: 10px;
-        }
-
-        .filter-header {
-            text-align: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .filter-header h2 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            color: white;
-            font-weight: 700;
-        }
-
-        .filter-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            padding: 1.5rem;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        }
-
-        .filter-form {
-            width: 100%;
-        }
-
-        .filter-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            align-items: end;
-        }
-
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .filter-label {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--dark-color);
-            font-size: 0.9rem;
-        }
-
-        .search-input-container {
-            position: relative;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 10px 40px 10px 15px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: var(--transition);
-            background: white;
-        }
-
-        .search-input:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-            outline: none;
-        }
-
-        .search-icon {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-        }
-
-        .select-container {
-            position: relative;
-        }
-
-        .filter-select {
-            width: 100%;
-            padding: 10px 40px 10px 15px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 14px;
-            background: white;
-            appearance: none;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        .filter-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-            outline: none;
-        }
-
-        .select-arrow {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-            pointer-events: none;
-        }
-
-        .price-input-container {
-            position: relative;
-        }
-
-        .price-input {
-            width: 100%;
-            padding: 10px 40px 10px 15px;
-            border: 2px solid #e1e5e9;
-            border-radius: 8px;
-            font-size: 14px;
-            transition: var(--transition);
-        }
-
-        .price-input:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
-            outline: none;
-        }
-
-        .price-currency {
-            position: absolute;
-            right: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6c757d;
-            font-weight: 600;
-        }
-
-        .filter-actions {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
-        .filter-btn, .clear-btn {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 10px 15px;
-            white-space: nowrap;
-        }
-
-        /* Grille des voitures dans le dashboard */
-        .cars-grid-dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .car-card-dashboard {
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s ease;
-            border: 1px solid #e1e5e9;
-        }
-
-        .car-card-dashboard:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
-
-        .car-image-container-dashboard {
-            position: relative;
-            overflow: hidden;
-            height: 180px;
-        }
-
-        .car-image-dashboard {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.3s ease;
-        }
-
-        .car-card-dashboard:hover .car-image-dashboard {
-            transform: scale(1.05);
-        }
-
-        .status-badge-dashboard {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            padding: 0.4rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            z-index: 2;
-        }
-
-        .status-badge-dashboard.available {
-            background: #27ae60;
-            color: white;
-        }
-
-        .status-badge-dashboard.unavailable {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .car-card-content-dashboard {
-            padding: 1.2rem;
-        }
-
-        .car-category-dashboard {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: #6c757d;
-            font-size: 0.85rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .category-icon-dashboard {
-            font-size: 0.9rem;
-            color: var(--primary-color);
-        }
-
-        .car-title-dashboard {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--dark-color);
-            margin-bottom: 0.5rem;
-            line-height: 1.3;
-        }
-
-        .car-description-dashboard {
-            color: #6c757d;
-            line-height: 1.5;
-            margin-bottom: 1rem;
-            font-size: 0.9rem;
-        }
-
-        .car-features-dashboard {
-            display: flex;
-            gap: 0.8rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .feature-dashboard {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.8rem;
-            color: #6c757d;
-        }
-
-        .feature-dashboard i {
-            color: var(--primary-color);
-            width: 14px;
-        }
-
-        .car-price-dashboard {
-            display: flex;
-            align-items: baseline;
-            gap: 0.25rem;
-            margin-bottom: 1rem;
-        }
-
-        .price-amount-dashboard {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--dark-color);
-        }
-
-        .price-period-dashboard {
-            color: #6c757d;
-            font-size: 0.85rem;
-        }
-
-        .car-actions-dashboard {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .btn-edit, .btn-delete, .btn-status {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.4rem;
-            padding: 8px 12px;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition);
-            font-size: 0.85rem;
-        }
-
-        .btn-edit {
-            background: #3498db;
-            color: white;
-        }
-
-        .btn-edit:hover {
-            background: #2980b9;
-        }
-
-        .btn-delete {
-            background: #e74c3c;
-            color: white;
-        }
-
-        .btn-delete:hover {
-            background: #c0392b;
-        }
-
-        .btn-status {
-            background: #2ecc71;
-            color: white;
-        }
-
-        .btn-status:hover {
-            background: #27ae60;
-        }
-
-        /* Pagination pour le dashboard */
-        .pagination-dashboard {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 1rem;
-            margin-top: 2rem;
-            flex-wrap: wrap;
-        }
-
-        .pagination-btn-dashboard {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.6rem 1.2rem;
-            border: 2px solid #e1e5e9;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: var(--transition);
-            font-weight: 600;
-            color: var(--dark-color);
-            font-size: 0.9rem;
-        }
-
-        .pagination-btn-dashboard:hover:not(.disabled) {
-            border-color: var(--primary-color);
-            color: var(--primary-color);
-        }
-
-        .pagination-btn-dashboard.disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .pagination-numbers-dashboard {
-            display: flex;
-            gap: 0.4rem;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-
-        .pagination-number-dashboard {
-            padding: 0.6rem 0.8rem;
-            border: 2px solid #e1e5e9;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: var(--transition);
-            font-weight: 600;
-            min-width: 40px;
-            text-align: center;
-            color: var(--dark-color);
-            font-size: 0.9rem;
-        }
-
-        .pagination-number-dashboard:hover {
-            border-color: var(--primary-color);
-            color: var(--primary-color);
-        }
-
-        .pagination-number-dashboard.active {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-
-        .pagination-dots-dashboard {
-            padding: 0.6rem 0.4rem;
-            color: #6c757d;
-        }
-
-        .pagination-info-dashboard {
-            text-align: center;
-            margin-top: 1rem;
-            color: #6c757d;
-            font-size: 0.85rem;
-        }
-
-        /* Tableaux améliorés */
-        .table-container {
-            overflow-x: auto;
-            margin-top: 1rem;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
-
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #e1e5e9;
-        }
-
-        th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: var(--dark-color);
-        }
-
-        tr:hover {
-            background-color: #f8f9fa;
-        }
-
-        /* Responsive */
-        @media (max-width: 992px) {
-            .sidebar {
-                width: 80px;
-                overflow: visible;
-            }
-
-            .sidebar-header {
-                padding: 20px 10px;
-            }
-
-            .profile-name, .profile-role {
-                display: none;
-            }
-
-            .menu-item span {
-                display: none;
-            }
-
-            .menu-item i {
-                margin-right: 0;
-                font-size: 1.5rem;
-            }
-
-            .main-content {
-                margin-left: 80px;
-            }
-
-            .filter-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .stats-container {
-                grid-template-columns: 1fr;
-            }
-            
-            .main-content {
-                padding: 15px;
-            }
-
-            .cars-grid-dashboard {
-                grid-template-columns: 1fr;
-            }
-
-            .car-actions-dashboard {
-                flex-direction: column;
-            }
-        }
-    </style>
-</head>
-<body class="dashboard-page">
+<?php include_once('./includes/header.php'); ?>
     <!-- Dashboard Container -->
     <div class="dashboard-container">
         <!-- Sidebar -->
@@ -854,15 +138,6 @@ try {
         <div class="main-content">
             <div class="dashboard-header">
                 <h1 class="page-title" id="page-title">Tableau de bord</h1>
-                <div class="user-actions">
-                    <div class="notification-icon">
-                        <i class="fas fa-bell fa-lg"></i>
-                        <span class="notification-badge">3</span>
-                    </div>
-                    <div class="user-profile">
-                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Profile" style="width: 40px; height: 40px; border-radius: 50%;">
-                    </div>
-                </div>
             </div>
 
             <!-- Dashboard Section -->
@@ -875,7 +150,12 @@ try {
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>1,254</h3>
+                            <h3>
+                                <?php $totalUser = $pdo->query("SELECT COUNT(*) as total FROM users WHERE status = 'active'");
+                                      $stats['total'] = $totalUser->fetch()['total']; 
+                                      echo $stats['total']; 
+                                ?>
+                            </h3>
                             <p>Utilisateurs actifs</p>
                         </div>
                     </div>
@@ -884,7 +164,10 @@ try {
                             <i class="fas fa-user-tie"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>86</h3>
+                            <h3><?php $totalEEmp = $pdo->query("SELECT COUNT(*) as total FROM users WHERE status = 'active' AND (role = 'admin' OR role = 'manager')");
+                                      $stats['total'] = $totalEEmp->fetch()['total']; 
+                                      echo $stats['total']; 
+                                ?></h3>
                             <p>Employés</p>
                         </div>
                     </div>
@@ -902,8 +185,11 @@ try {
                             <i class="fas fa-chart-line"></i>
                         </div>
                         <div class="stat-info">
-                            <h3>24%</h3>
-                            <p>Croissance ce mois</p>
+                            <h3><?php $totalCarsRent = $pdo->query("SELECT COUNT(*) as total FROM cars WHERE status = 'available'");
+                                      $stats['total'] = $totalCarsRent->fetch()['total']; 
+                                      echo $stats['total']; 
+                                ?> / <?php echo $totalCars; ?></h3>
+                            <p>Croissance</p>
                         </div>
                     </div>
                 </div>
@@ -913,105 +199,394 @@ try {
                 </div>
             </div>
 
-            <!-- Users Section -->
-            <div class="content-section" id="users">
-                <h2 class="section-title"><i class="fas fa-users"></i> Gestion des utilisateurs</h2>
+           <!-- Users Section -->
+    <div class="content-section" id="users">
+        <div class="users-section-header">
+            <h2 class="section-title"><i class="fas fa-users"></i> Gestion des utilisateurs</h2>
+            <div class="users-stats">
+                <?php
+                // Statistiques des utilisateurs
+                $stats = [
+                    'total' => 0,
+                    'admins' => 0,
+                    'managers' => 0,
+                    'users' => 0,
+                    'active' => 0,
+                    'inactive' => 0
+                ];
                 
+                try {
+                    $totalStmt = $pdo->query("SELECT COUNT(*) as total FROM users");
+                    $stats['total'] = $totalStmt->fetch()['total'];
+                    
+                    $roleStmt = $pdo->query("SELECT role, COUNT(*) as count FROM users GROUP BY role");
+                    while ($role = $roleStmt->fetch()) {
+                        $stats[$role['role'] . 's'] = $role['count'];
+                    }
+                    
+                    $statusStmt = $pdo->query("SELECT status, COUNT(*) as count FROM users GROUP BY status");
+                    while ($status = $statusStmt->fetch()) {
+                        $stats[$status['status']] = $status['count'];
+                    }
+                } catch (PDOException $e) {
+                    error_log("Erreur statistiques utilisateurs: " . $e->getMessage());
+                }
+                ?>
+                
+                <div class="stat-badge total">
+                    <i class="fas fa-users"></i>
+                    <span>Total: <?php echo $stats['total']; ?></span>
+                </div>
+                <div class="stat-badge admins">
+                    <i class="fas fa-crown"></i>
+                    <span>Admins: <?php echo $stats['admins']; ?></span>
+                </div>
+                <div class="stat-badge managers">
+                    <i class="fas fa-user-tie"></i>
+                    <span>Managers: <?php echo $stats['managers']; ?></span>
+                </div>
+                <div class="stat-badge users">
+                    <i class="fas fa-user"></i>
+                    <span>Users: <?php echo $stats['users']; ?></span>
+                </div>
+            </div>
+        </div>
+        
+        <?php
+        // Récupérer tous les utilisateurs
+        $users = [];
+        try {
+            $usersStmt = $pdo->query("SELECT id, first_name, last_name, email, role, status, date_creation FROM users ORDER BY date_creation DESC");
+            $users = $usersStmt->fetchAll();
+        } catch (PDOException $e) {
+            error_log("Erreur lors de la récupération des utilisateurs: " . $e->getMessage());
+        }
+        ?>
+        
+        <!-- Vue Desktop/Tablette (Tableau) -->
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Prénom</th>
+                        <th>Nom</th>
+                        <th>Email</th>
+                        <th>Rôle</th>
+                        <th>Statut</th>
+                        <th>Date d'inscription</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if (empty($users)): ?>
+                        <tr>
+                            <td colspan="8" style="text-align: center; padding: 3rem;">
+                                <i class="fas fa-users" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
+                                <h3 style="color: var(--dark-color); margin-bottom: 0.5rem;">Aucun utilisateur trouvé</h3>
+                                <p style="color: #6c757d;">Aucun utilisateur n'est inscrit pour le moment</p>
+                            </td>
+                        </tr>
+                    <?php else: ?>
+                        <?php foreach ($users as $user): ?>
+                            <tr>
+                                <td><strong>#<?php echo $user['id']; ?></strong></td>
+                                <td><?php echo htmlspecialchars($user['first_name']); ?></td>
+                                <td><?php echo htmlspecialchars($user['last_name']); ?></td>
+                                <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                <td>
+                                    <span class="role-badge <?php echo $user['role']; ?>">
+                                        <?php 
+                                        $roleLabels = [
+                                            'admin' => 'Admin',
+                                            'manager' => 'Manager',
+                                            'user' => 'User'
+                                        ];
+                                        echo $roleLabels[$user['role']] ?? $user['role']; 
+                                        ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span style="display: inline-block; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; min-width: 80px; text-align: center; color: white; background: <?php echo $user['status'] === 'active' ? '#27ae60' : '#95a5a6'; ?>">
+                                        <?php echo $user['status'] === 'active' ? 'Actif' : 'Inactif'; ?>
+                                    </span>
+                                </td>
+                                <td><?php echo date('d/m/Y H:i', strtotime($user['date_creation'])); ?></td>
+                                <td>
+                                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                        <button class="btn-view-user" 
+                                                data-user-id="<?php echo $user['id']; ?>"
+                                                data-user-data='<?php echo json_encode($user); ?>'>
+                                            <i class="fas fa-edit"></i> Modifier
+                                        </button>
+                                        <button class="btn-delete-user" 
+                                                data-user-id="<?php echo $user['id']; ?>"
+                                                data-user-name="<?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>">
+                                            <i class="fas fa-trash"></i> Supprimer
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    
+    <!-- Vue Mobile (Cartes) -->
+    <div class="users-grid-mobile">
+        <?php if (empty($users)): ?>
+            <div style="text-align: center; padding: 3rem;">
+                <i class="fas fa-users" style="font-size: 4rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
+                <h3 style="color: var(--dark-color); margin-bottom: 0.5rem;">Aucun utilisateur</h3>
+                <p style="color: #6c757d;">Aucun utilisateur trouvé dans la base de données</p>
+            </div>
+        <?php else: ?>
+            <?php foreach ($users as $user): ?>
+                <div class="user-card-mobile">
+                    <div class="user-header-mobile">
+                        <div class="user-info-mobile">
+                            <h4><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></h4>
+                            <div class="user-email-mobile"><?php echo htmlspecialchars($user['email']); ?></div>
+                        </div>
+                        <div class="user-meta-mobile">
+                            <span class="role-badge <?php echo $user['role']; ?>">
+                                <?php 
+                                $roleLabels = [
+                                    'admin' => 'Admin',
+                                    'manager' => 'Manager',
+                                    'user' => 'User'
+                                ];
+                                echo $roleLabels[$user['role']] ?? $user['role']; 
+                                ?>
+                            </span>
+                            <span class="status-badge <?php echo $user['status']; ?>">
+                                <?php echo $user['status'] === 'active' ? 'Actif' : 'Inactif'; ?>
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="user-details-mobile">
+                        <div class="detail-item-mobile">
+                            <span class="detail-label-mobile">ID Utilisateur</span>
+                            <span class="detail-value-mobile">#<?php echo $user['id']; ?></span>
+                        </div>
+                        <div class="detail-item-mobile">
+                            <span class="detail-label-mobile">Date d'inscription</span>
+                            <span class="detail-value-mobile"><?php echo date('d/m/Y H:i', strtotime($user['date_creation'])); ?></span>
+                        </div>
+                    </div> 
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+                        <button class="btn-view-user" 
+                                data-user-id="<?php echo $user['id']; ?>"
+                                data-user-data='<?php echo json_encode($user); ?>'>
+                            <i class="fas fa-edit"></i> Modifier l'utilisateur
+                        </button>
+                        <button class="btn-delete-user" 
+                                data-user-id="<?php echo $user['id']; ?>"
+                                data-user-name="<?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?>">
+                            <i class="fas fa-trash"></i> Supprimer l'utilisateur
+                        </button>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+
+        </div>
+    </div>
+
+            <!-- Employees Section -->
+            <div class="content-section" id="employees">
+                <div class="users-section-header">
+                    <h2 class="section-title"><i class="fas fa-user-tie"></i> Gestion des employés</h2>
+                    <div class="users-stats">
+                        <?php
+                        // Statistiques des employés (admin + manager)
+                        $employeeStats = [
+                            'total' => 0,
+                            'admins' => 0,
+                            'managers' => 0,
+                            'active' => 0,
+                            'inactive' => 0
+                        ];
+                        
+                        try {
+                            $totalEmpStmt = $pdo->query("SELECT COUNT(*) as total FROM users WHERE role IN ('admin', 'manager')");
+                            $employeeStats['total'] = $totalEmpStmt->fetch()['total'];
+                            
+                            $roleEmpStmt = $pdo->query("SELECT role, COUNT(*) as count FROM users WHERE role IN ('admin', 'manager') GROUP BY role");
+                            while ($role = $roleEmpStmt->fetch()) {
+                                $employeeStats[$role['role'] . 's'] = $role['count'];
+                            }
+                            
+                            $statusEmpStmt = $pdo->query("SELECT status, COUNT(*) as count FROM users WHERE role IN ('admin', 'manager') GROUP BY status");
+                            while ($status = $statusEmpStmt->fetch()) {
+                                $employeeStats[$status['status']] = $status['count'];
+                            }
+                        } catch (PDOException $e) {
+                            error_log("Erreur statistiques employés: " . $e->getMessage());
+                        }
+                        ?>
+                        
+                        <div class="stat-badge total">
+                            <i class="fas fa-users"></i>
+                            <span>Total: <?php echo $employeeStats['total']; ?></span>
+                        </div>
+                        <div class="stat-badge admins">
+                            <i class="fas fa-crown"></i>
+                            <span>Admins: <?php echo $employeeStats['admins']; ?></span>
+                        </div>
+                        <div class="stat-badge managers">
+                            <i class="fas fa-user-tie"></i>
+                            <span>Managers: <?php echo $employeeStats['managers']; ?></span>
+                        </div>
+                        <div class="stat-badge active">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Actifs: <?php echo $employeeStats['active']; ?></span>
+                        </div>
+                    </div>
+                </div>
+                
+                <?php
+                // Récupérer seulement les employés (admin + manager)
+                $employees = [];
+                try {
+                    $employeesStmt = $pdo->query("SELECT id, first_name, last_name, email, role, status, date_creation FROM users WHERE role IN ('admin', 'manager') ORDER BY role, date_creation DESC");
+                    $employees = $employeesStmt->fetchAll();
+                } catch (PDOException $e) {
+                    error_log("Erreur lors de la récupération des employés: " . $e->getMessage());
+                }
+                ?>
+                
+                <!-- Vue Desktop/Tablette (Tableau) -->
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
+                                <th>ID</th>
+                                <th>Prénom</th>
                                 <th>Nom</th>
                                 <th>Email</th>
                                 <th>Rôle</th>
+                                <th>Statut</th>
                                 <th>Date d'inscription</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td>Marie Martin</td>
-                                <td>marie.martin@example.com</td>
-                                <td>Utilisateur</td>
-                                <td>15/03/2023</td>
-                                <td>
-                                    <button class="btn btn-secondary">Modifier</button>
-                                    <button class="btn btn-primary">Désactiver</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Pierre Dubois</td>
-                                <td>pierre.dubois@example.com</td>
-                                <td>Administrateur</td>
-                                <td>22/01/2023</td>
-                                <td>
-                                    <button class="btn btn-secondary">Modifier</button>
-                                    <button class="btn btn-primary">Désactiver</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Sophie Lambert</td>
-                                <td>sophie.lambert@example.com</td>
-                                <td>Utilisateur</td>
-                                <td>10/04/2023</td>
-                                <td>
-                                    <button class="btn btn-secondary">Modifier</button>
-                                    <button class="btn btn-primary">Désactiver</button>
-                                </td>
-                            </tr>
+                            <?php if (empty($employees)): ?>
+                                <tr>
+                                    <td colspan="8" style="text-align: center; padding: 3rem;">
+                                        <i class="fas fa-user-tie" style="font-size: 3rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
+                                        <h3 style="color: var(--dark-color); margin-bottom: 0.5rem;">Aucun employé trouvé</h3>
+                                        <p style="color: #6c757d;">Aucun administrateur ou manager n'est inscrit pour le moment</p>
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($employees as $employee): ?>
+                                    <tr>
+                                        <td><strong>#<?php echo $employee['id']; ?></strong></td>
+                                        <td><?php echo htmlspecialchars($employee['first_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($employee['last_name']); ?></td>
+                                        <td><?php echo htmlspecialchars($employee['email']); ?></td>
+                                        <td>
+                                            <span class="role-badge <?php echo $employee['role']; ?>">
+                                                <?php 
+                                                $roleLabels = [
+                                                    'admin' => 'Admin',
+                                                    'manager' => 'Manager',
+                                                    'user' => 'User'
+                                                ];
+                                                echo $roleLabels[$employee['role']] ?? $employee['role']; 
+                                                ?>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span style="display: inline-block; padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; min-width: 80px; text-align: center; color: white; background: <?php echo $employee['status'] === 'active' ? '#27ae60' : '#95a5a6'; ?>">
+                                                <?php echo $employee['status'] === 'active' ? 'Actif' : 'Inactif'; ?>
+                                            </span>
+                                        </td>
+                                        <td><?php echo date('d/m/Y H:i', strtotime($employee['date_creation'])); ?></td>
+                                        <td>
+                                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                                <button class="btn-view-user" 
+                                                        data-user-id="<?php echo $employee['id']; ?>"
+                                                        data-user-data='<?php echo json_encode($employee); ?>'>
+                                                    <i class="fas fa-edit"></i> Modifier
+                                                </button>
+                                                <button class="btn-delete-user" 
+                                                        data-user-id="<?php echo $employee['id']; ?>"
+                                                        data-user-name="<?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?>">
+                                                    <i class="fas fa-trash"></i> Supprimer
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
-            </div>
-
-            <!-- Employees Section -->
-            <div class="content-section" id="employees">
-                <h2 class="section-title"><i class="fas fa-user-tie"></i> Gestion des employés</h2>
-                
-                <div class="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Nom</th>
-                                <th>Poste</th>
-                                <th>Département</th>
-                                <th>Date d'embauche</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Thomas Moreau</td>
-                                <td>Développeur</td>
-                                <td>IT</td>
-                                <td>12/02/2022</td>
-                                <td>
-                                    <button class="btn btn-secondary">Modifier</button>
-                                    <button class="btn btn-primary">Voir détails</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>Julie Petit</td>
-                                <td>Designer</td>
-                                <td>Marketing</td>
-                                <td>05/08/2021</td>
-                                <td>
-                                    <button class="btn btn-secondary">Modifier</button>
-                                    <button class="btn btn-primary">Voir détails</button>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td>David Leroy</td>
-                                <td>Commercial</td>
-                                <td>Ventes</td>
-                                <td>20/11/2022</td>
-                                <td>
-                                    <button class="btn btn-secondary">Modifier</button>
-                                    <button class="btn btn-primary">Voir détails</button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+            
+                <!-- Vue Mobile (Cartes) -->
+                <div class="users-grid-mobile">
+                    <?php if (empty($employees)): ?>
+                        <div style="text-align: center; padding: 3rem;">
+                            <i class="fas fa-user-tie" style="font-size: 4rem; color: #bdc3c7; margin-bottom: 1rem;"></i>
+                            <h3 style="color: var(--dark-color); margin-bottom: 0.5rem;">Aucun employé</h3>
+                            <p style="color: #6c757d;">Aucun administrateur ou manager trouvé</p>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($employees as $employee): ?>
+                            <div class="user-card-mobile">
+                                <div class="user-header-mobile">
+                                    <div class="user-info-mobile">
+                                        <h4><?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?></h4>
+                                        <div class="user-email-mobile"><?php echo htmlspecialchars($employee['email']); ?></div>
+                                    </div>
+                                    <div class="user-meta-mobile">
+                                        <span class="role-badge <?php echo $employee['role']; ?>">
+                                            <?php 
+                                            $roleLabels = [
+                                                'admin' => 'Admin',
+                                                'manager' => 'Manager',
+                                                'user' => 'User'
+                                            ];
+                                            echo $roleLabels[$employee['role']] ?? $employee['role']; 
+                                            ?>
+                                        </span>
+                                        <span class="status-badge <?php echo $employee['status']; ?>">
+                                            <?php echo $employee['status'] === 'active' ? 'Actif' : 'Inactif'; ?>
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="user-details-mobile">
+                                    <div class="detail-item-mobile">
+                                        <span class="detail-label-mobile">ID Employé</span>
+                                        <span class="detail-value-mobile">#<?php echo $employee['id']; ?></span>
+                                    </div>
+                                    <div class="detail-item-mobile">
+                                        <span class="detail-label-mobile">Date d'inscription</span>
+                                        <span class="detail-value-mobile"><?php echo date('d/m/Y H:i', strtotime($employee['date_creation'])); ?></span>
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem;">
+                                    <button class="btn-view-user" 
+                                            data-user-id="<?php echo $employee['id']; ?>"
+                                            data-user-data='<?php echo json_encode($employee); ?>'>
+                                        <i class="fas fa-edit"></i> Modifier l'employé
+                                    </button>
+                                    <button class="btn-delete-user" 
+                                            data-user-id="<?php echo $employee['id']; ?>"
+                                            data-user-name="<?php echo htmlspecialchars($employee['first_name'] . ' ' . $employee['last_name']); ?>">
+                                        <i class="fas fa-trash"></i> Supprimer l'employé
+                                    </button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -1167,15 +742,22 @@ try {
                                     </div>
                                     
                                     <div class="car-actions-dashboard">
-                                        <button class="btn-edit" onclick="editCar(<?php echo $car['id']; ?>)">
+                                        <button class="btn-edit" 
+                                                data-car-id="<?php echo $car['id']; ?>"
+                                                data-car-data='<?php echo json_encode($car); ?>'>
                                             <i class="fas fa-edit"></i>
                                             Modifier
                                         </button>
-                                        <button class="btn-status" onclick="toggleStatus(<?php echo $car['id']; ?>)">
+                                        <button class="btn-status" 
+                                                data-car-id="<?php echo $car['id']; ?>"
+                                                data-car-title="<?php echo htmlspecialchars($car['title']); ?>"
+                                                data-car-current-status="<?php echo $car['status']; ?>">
                                             <i class="fas fa-sync-alt"></i>
                                             Statut
                                         </button>
-                                        <button class="btn-delete" onclick="deleteCar(<?php echo $car['id']; ?>)">
+                                        <button class="btn-delete" 
+                                                data-car-id="<?php echo $car['id']; ?>"
+                                                data-car-title="<?php echo htmlspecialchars($car['title']); ?>">
                                             <i class="fas fa-trash"></i>
                                             Supprimer
                                         </button>
@@ -1282,6 +864,301 @@ try {
             </div>
         </div>
     </div>
+
+
+        <!-- Modal de modification voiture -->
+    <div class="modal-overlay" id="car-edit-modal">
+        <div class="modal" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="car-edit-modal-title">Modifier la voiture</h3>
+                <button class="close-modal" id="close-car-edit-modal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <form id="car-edit-form">
+                    <input type="hidden" id="car-id" name="car_id">
+                    
+                    <div class="form-group">
+                        <label for="car-title">Titre *</label>
+                        <input type="text" id="car-title" name="title" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="car-description">Description</label>
+                        <textarea id="car-description" name="description" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="car-category">Catégorie *</label>
+                            <div class="select-container">
+                                <select id="car-category" name="category_id" required class="filter-select">
+                                    <option value="">Sélectionner une catégorie</option>
+                                    <?php foreach ($categories as $category): ?>
+                                        <option value="<?php echo $category['id']; ?>">
+                                            <?php echo htmlspecialchars($category['name']); ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <i class="fas fa-chevron-down select-arrow"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="car-price">Prix (€/jour) *</label>
+                            <input type="number" id="car-price" name="price" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="car-image-url">URL de l'image</label>
+                        <input type="url" id="car-image-url" name="image_url" placeholder="https://example.com/image.jpg">
+                    </div>
+                    
+                    <div class="form-actions" style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="button" class="btn btn-secondary" id="cancel-car-edit">Annuler</button>
+                        <button type="submit" class="btn btn-primary" id="save-car-changes">
+                            <i class="fas fa-save"></i> Enregistrer les modifications
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de changement de statut voiture -->
+    <div class="modal-overlay" id="car-status-modal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-sync-alt" style="color: #3498db; margin-right: 0.5rem;"></i>
+                    Changer le statut
+                </h3>
+                <button class="close-modal" id="close-car-status-modal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="delete-confirmation">
+                    <div class="delete-icon" style="color: #3498db;">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    
+                    <h4 id="car-status-message">Êtes-vous sûr de vouloir changer le statut de cette voiture ?</h4>
+                    
+                    <div class="delete-warning">
+                        <i class="fas fa-info-circle"></i>
+                        <div class="delete-warning-content">
+                            <div class="delete-warning-title">Changement de statut</div>
+                            <div class="delete-warning-text">
+                                Cette action modifiera la disponibilité de la voiture pour les réservations.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin: 1.5rem 0;">
+                        <label for="new-car-status" style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Nouveau statut *</label>
+                        <div class="select-container">
+                            <select id="new-car-status" class="filter-select" style="width: 100%;">
+                                <option value="available">🟢 Disponible</option>
+                                <option value="unavailable">🔴 Réservé</option>
+                            </select>
+                            <i class="fas fa-chevron-down select-arrow"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="delete-actions">
+                        <button class="btn btn-secondary" id="cancel-car-status">
+                            <i class="fas fa-times"></i>
+                            Annuler
+                        </button>
+                        <button class="btn btn-primary" id="confirm-car-status">
+                            <i class="fas fa-check"></i>
+                            Confirmer le changement
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de suppression voiture -->
+    <div class="modal-overlay" id="car-delete-modal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3 class="modal-title">
+                    <i class="fas fa-exclamation-triangle" style="color: #e74c3c; margin-right: 0.5rem;"></i>
+                    Confirmer la suppression
+                </h3>
+                <button class="close-modal" id="close-car-delete-modal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="delete-confirmation">
+                    <div class="delete-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    
+                    <h4 id="car-delete-message">Êtes-vous sûr de vouloir supprimer cette voiture ?</h4>
+                    
+                    <div class="delete-warning">
+                        <i class="fas fa-info-circle"></i>
+                        <div class="delete-warning-content">
+                            <div class="delete-warning-title">Action irréversible</div>
+                            <div class="delete-warning-text">
+                                Toutes les données de la voiture seront définitivement supprimées. 
+                                Cette action ne peut pas être annulée.
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="delete-actions">
+                        <button class="btn btn-secondary" id="cancel-car-delete">
+                            <i class="fas fa-times"></i>
+                            Annuler
+                        </button>
+                        <button class="btn btn-danger" id="confirm-car-delete">
+                            <i class="fas fa-trash"></i>
+                            Supprimer définitivement
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>                     
+
+    
+    <!-- Modal de détails utilisateur -->
+        <div class="modal-overlay" id="user-modal">
+            <div class="modal" style="max-width: 600px;">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="user-modal-title">Détails de l'utilisateur</h3>
+                    <button class="close-modal" id="close-user-modal">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <form id="user-form">
+                        <input type="hidden" id="user-id" name="user_id">
+                        <input type="hidden" name="update_user" value="1">
+                        
+                        <!-- Le reste des champs reste identique -->
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="user-first-name">Prénom *</label>
+                                <input type="text" id="user-first-name" name="first_name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="user-last-name">Nom *</label>
+                                <input type="text" id="user-last-name" name="last_name" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="user-email">Email *</label>
+                            <input type="email" id="user-email" name="email" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group select-with-badge">
+                                <label for="user-role" class="form-label">
+                                    <i class="fas fa-user-tag"></i>
+                                    Rôle *
+                                </label>
+                                <div class="select-wrapper">
+                                    <select id="user-role" name="role" required class="modern-select">
+                                        <option value="user">👤 Utilisateur</option>
+                                        <option value="manager">💼 Manager</option>
+                                        <option value="admin">👑 Administrateur</option>
+                                    </select>
+                                    <div class="select-arrow">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                    <div class="role-badge-preview user" id="role-badge">USER</div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group select-with-badge">
+                                <label for="user-status" class="form-label">
+                                    <i class="fas fa-user-check"></i>
+                                    Statut *
+                                </label>
+                                <div class="select-wrapper">
+                                    <select id="user-status" name="status" required class="modern-select">
+                                        <option value="active">🟢 Actif</option>
+                                        <option value="inactive">🔴 Inactif</option>
+                                    </select>
+                                    <div class="select-arrow">
+                                        <i class="fas fa-chevron-down"></i>
+                                    </div>
+                                    <div class="status-badge-preview active" id="status-badge">ACTIF</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="user-date-creation">Date d'inscription</label>
+                            <input type="text" id="user-date-creation" readonly style="background-color: #f8f9fa;">
+                        </div>
+                        
+                        <div class="form-actions" style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button type="button" class="btn btn-secondary" id="cancel-user-edit">Annuler</button>
+                            <button type="submit" class="btn btn-primary" id="save-user-changes">
+                                <i class="fas fa-save"></i> Enregistrer les modifications
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Modal de confirmation de suppression -->
+        <div class="modal-overlay" id="delete-modal">
+            <div class="modal" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h3 class="modal-title">
+                        <i class="fas fa-exclamation-triangle" style="color: #e74c3c; margin-right: 0.5rem;"></i>
+                        Confirmer la suppression
+                    </h3>
+                    <button class="close-modal" id="close-delete-modal">&times;</button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="delete-confirmation">
+                        <div class="delete-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        
+                        <h4 id="delete-message">Êtes-vous sûr de vouloir supprimer cet utilisateur ?</h4>
+                        
+                        <div class="delete-warning">
+                            <i class="fas fa-info-circle"></i>
+                            <div class="delete-warning-content">
+                                <div class="delete-warning-title">Action irréversible</div>
+                                <div class="delete-warning-text">
+                                    Toutes les données de l'utilisateur seront définitivement supprimées. 
+                                    Cette action ne peut pas être annulée.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="delete-actions">
+                            <button class="btn btn-secondary" id="cancel-delete">
+                                <i class="fas fa-times"></i>
+                                Annuler
+                            </button>
+                            <button class="btn btn-danger" id="confirm-delete">
+                                <i class="fas fa-trash"></i>
+                                Supprimer définitivement
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+         
+
+
 <script src="./assets/js/main.js"></script>
     <script>
         // Navigation du dashboard
@@ -1343,6 +1220,683 @@ try {
             updateActiveSection(initialSection);
         });
 
+
+
+
+        // Gestion du modal utilisateur - Version responsive
+        document.addEventListener('DOMContentLoaded', function() {
+            const userModal = document.getElementById('user-modal');
+            const closeUserModal = document.getElementById('close-user-modal');
+            const cancelUserEdit = document.getElementById('cancel-user-edit');
+            const userForm = document.getElementById('user-form');
+            const viewUserButtons = document.querySelectorAll('.btn-view-user');
+
+            // Ouvrir le modal avec les données de l'utilisateur
+            viewUserButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const userData = JSON.parse(this.getAttribute('data-user-data'));
+                    openUserModal(userData);
+                });
+            });
+
+            // Fermer le modal
+            function closeUserModalFunc() {
+                userModal.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+
+            if (closeUserModal) {
+                closeUserModal.addEventListener('click', closeUserModalFunc);
+            }
+
+            if (cancelUserEdit) {
+                cancelUserEdit.addEventListener('click', closeUserModalFunc);
+            }
+
+            userModal.addEventListener('click', (e) => {
+                if (e.target === userModal) closeUserModalFunc();
+            });
+
+            // Touche Échap pour fermer le modal
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && userModal.classList.contains('active')) {
+                    closeUserModalFunc();
+                }
+            });
+
+            // Ouvrir le modal avec les données
+            function openUserModal(userData) {
+                document.getElementById('user-id').value = userData.id;
+                document.getElementById('user-first-name').value = userData.first_name;
+                document.getElementById('user-last-name').value = userData.last_name;
+                document.getElementById('user-email').value = userData.email;
+                document.getElementById('user-role').value = userData.role;
+                document.getElementById('user-status').value = userData.status;
+                document.getElementById('user-date-creation').value = new Date(userData.date_creation).toLocaleDateString('fr-FR');
+                
+                document.getElementById('user-modal-title').textContent = `Modifier ${userData.first_name} ${userData.last_name}`;
+                userModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                
+                // Focus sur le premier champ
+                setTimeout(() => {
+                    document.getElementById('user-first-name').focus();
+                }, 300);
+            }
+
+            // Soumission du formulaire
+            if (userForm) {
+                userForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    saveUserChanges();
+                });
+            }
+
+            // Fonction pour sauvegarder les modifications
+        async function saveUserChanges() {
+            const formData = new FormData(userForm);
+            const saveButton = document.getElementById('save-user-changes');
+            const originalText = saveButton.innerHTML;
+
+            try {
+                // Afficher le loading
+                saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+                saveButton.disabled = true;
+
+                // Utiliser le chemin correct
+                const response = await fetch('./modules/dashboard/update_user.php', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                // Vérifier si la réponse est OK
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification(result.message, 'success');
+                    // Fermer le modal après succès
+                    setTimeout(() => {
+                        closeUserModalFunc();
+                        // Recharger la page pour voir les changements
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification(result.message || 'Erreur lors de la mise à jour', 'error');
+                    saveButton.innerHTML = originalText;
+                    saveButton.disabled = false;
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showNotification('Erreur réseau - Vérifiez votre connexion', 'error');
+                saveButton.innerHTML = originalText;
+                saveButton.disabled = false;
+            }
+        }
+
+            // Adapter le modal sur les petits écrans
+            function handleResize() {
+                if (window.innerWidth <= 768) {
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        modal.style.margin = '20px auto';
+                        modal.style.width = '95%';
+                    });
+                } else {
+                    document.querySelectorAll('.modal').forEach(modal => {
+                        modal.style.margin = '';
+                        modal.style.width = '';
+                    });
+                }
+            }
+
+            // Écouter les changements de taille
+            window.addEventListener('resize', handleResize);
+            handleResize(); // Initial call
+        });
+
+        // Fonction de notification améliorée pour mobile
+        function showNotification(message, type = 'info') {
+            // Supprimer les notifications existantes
+            document.querySelectorAll('.custom-notification').forEach(notif => notif.remove());
+
+            const notification = document.createElement('div');
+            notification.className = `custom-notification ${type}`;
+            
+            const icons = {
+                'success': 'fa-check-circle',
+                'error': 'fa-exclamation-circle',
+                'info': 'fa-info-circle',
+                'warning': 'fa-exclamation-triangle'
+            };
+            
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas ${icons[type] || 'fa-info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+                <button class="notification-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Style responsive pour la notification
+            if (window.innerWidth <= 768) {
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 10px;
+                    right: 10px;
+                    max-width: none;
+                    z-index: 9999;
+                `;
+            }
+            
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        }
+
+
+        // ===== GESTION DE LA SUPPRESSION D'UTILISATEUR =====
+        document.addEventListener('DOMContentLoaded', function() {
+            const deleteModal = document.getElementById('delete-modal');
+            const closeDeleteModal = document.getElementById('close-delete-modal');
+            const cancelDelete = document.getElementById('cancel-delete');
+            const confirmDelete = document.getElementById('confirm-delete');
+            const deleteMessage = document.getElementById('delete-message');
+            const deleteButtons = document.querySelectorAll('.btn-delete-user');
+
+            let userToDelete = null;
+            let userNameToDelete = '';
+
+            // Ouvrir le modal de suppression
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const userId = this.getAttribute('data-user-id');
+                    const userName = this.getAttribute('data-user-name');
+                    
+                    userToDelete = userId;
+                    userNameToDelete = userName;
+                    deleteMessage.textContent = `Êtes-vous sûr de vouloir supprimer l'utilisateur "${userName}" ?`;
+                    
+                    openDeleteModal();
+                });
+            });
+
+            // Fonctions pour ouvrir/fermer le modal de suppression
+            function openDeleteModal() {
+                deleteModal.classList.add('active');
+                document.body.style.overflow = 'hidden';
+                
+                // Focus sur le bouton d'annulation pour l'accessibilité
+                setTimeout(() => {
+                    cancelDelete.focus();
+                }, 300);
+            }
+
+            function closeDeleteModalFunc() {
+                deleteModal.classList.remove('active');
+                document.body.style.overflow = '';
+                userToDelete = null;
+                userNameToDelete = '';
+                
+                // Réactiver le bouton de confirmation
+                confirmDelete.disabled = false;
+                confirmDelete.innerHTML = '<i class="fas fa-trash"></i> Supprimer définitivement';
+            }
+
+            // Événements de fermeture
+            if (closeDeleteModal) {
+                closeDeleteModal.addEventListener('click', closeDeleteModalFunc);
+            }
+
+            if (cancelDelete) {
+                cancelDelete.addEventListener('click', closeDeleteModalFunc);
+            }
+
+            deleteModal.addEventListener('click', (e) => {
+                if (e.target === deleteModal) closeDeleteModalFunc();
+            });
+
+            // Touche Échap
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && deleteModal.classList.contains('active')) {
+                    closeDeleteModalFunc();
+                }
+            });
+
+            // Confirmation de suppression
+            if (confirmDelete) {
+                confirmDelete.addEventListener('click', async function() {
+                    if (!userToDelete) return;
+
+                    const button = this;
+                    const originalText = button.innerHTML;
+                    
+                    try {
+                        // Afficher le loading
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Suppression...';
+                        button.disabled = true;
+                        button.classList.add('btn-loading');
+
+                        const response = await fetch('./modules/dashboard/delete_user.php', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: `user_id=${userToDelete}`
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showNotification(result.message, 'success');
+                            closeDeleteModalFunc();
+                            
+                            // Recharger la page après un délai
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            showNotification(result.message || 'Erreur lors de la suppression', 'error');
+                            resetDeleteButton(button, originalText);
+                        }
+                    } catch (error) {
+                        console.error('Erreur:', error);
+                        showNotification('Erreur réseau - Vérifiez votre connexion', 'error');
+                        resetDeleteButton(button, originalText);
+                    }
+                });
+            }
+
+            function resetDeleteButton(button, originalText) {
+                button.innerHTML = originalText;
+                button.disabled = false;
+                button.classList.remove('btn-loading');
+            }
+        });
+
+        // ===== GESTION DES EMPLOYÉS - RÉUTILISATION DU CODE UTILISATEURS =====
+        document.addEventListener('DOMContentLoaded', function() {
+            // Les boutons de modification et suppression des employés utilisent les mêmes classes
+            // donc le code JavaScript existant fonctionnera automatiquement
+            
+            // Vérification que les boutons employés sont bien connectés
+            const employeeEditButtons = document.querySelectorAll('#employees .btn-view-user');
+            const employeeDeleteButtons = document.querySelectorAll('#employees .btn-delete-user');
+            
+            console.log(`Nombre de boutons modification employés: ${employeeEditButtons.length}`);
+            console.log(`Nombre de boutons suppression employés: ${employeeDeleteButtons.length}`);
+            
+            // Le code existant pour les modals utilisateurs fonctionnera aussi pour les employés
+            // car ils utilisent les mêmes classes CSS et structure HTML
+        });
+
+        // Fonction utilitaire pour afficher les notifications
+        function showNotification(message, type = 'info') {
+            // Utilise la même fonction de notification que pour les utilisateurs
+            const notification = document.createElement('div');
+            notification.className = `custom-notification ${type}`;
+            
+            const icons = {
+                'success': 'fa-check-circle',
+                'error': 'fa-exclamation-circle',
+                'info': 'fa-info-circle',
+                'warning': 'fa-exclamation-triangle'
+            };
+            
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas ${icons[type] || 'fa-info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+                <button class="notification-close" onclick="this.parentElement.remove()">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Style responsive pour la notification
+            if (window.innerWidth <= 768) {
+                notification.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    left: 10px;
+                    right: 10px;
+                    max-width: none;
+                    z-index: 9999;
+                `;
+            }
+            
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.classList.remove('show');
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.parentNode.removeChild(notification);
+                        }
+                    }, 300);
+                }
+            }, 5000);
+        }
+
+
+        // ===== GESTION DES VOITURES =====
+    document.addEventListener('DOMContentLoaded', function() {
+        // Modal de modification voiture
+        const carEditModal = document.getElementById('car-edit-modal');
+        const closeCarEditModal = document.getElementById('close-car-edit-modal');
+        const cancelCarEdit = document.getElementById('cancel-car-edit');
+        const carEditForm = document.getElementById('car-edit-form');
+        const carEditButtons = document.querySelectorAll('.btn-edit');
+
+        // Modal de statut voiture
+        const carStatusModal = document.getElementById('car-status-modal');
+        const closeCarStatusModal = document.getElementById('close-car-status-modal');
+        const cancelCarStatus = document.getElementById('cancel-car-status');
+        const confirmCarStatus = document.getElementById('confirm-car-status');
+        const carStatusButtons = document.querySelectorAll('.btn-status');
+
+        // Modal de suppression voiture
+        const carDeleteModal = document.getElementById('car-delete-modal');
+        const closeCarDeleteModal = document.getElementById('close-car-delete-modal');
+        const cancelCarDelete = document.getElementById('cancel-car-delete');
+        const confirmCarDelete = document.getElementById('confirm-car-delete');
+        const carDeleteButtons = document.querySelectorAll('.btn-delete');
+
+        let currentCarId = null;
+        let currentCarTitle = null;
+        let currentCarStatus = null;
+
+        // === MODAL DE MODIFICATION ===
+        carEditButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const carData = JSON.parse(this.getAttribute('data-car-data'));
+                openCarEditModal(carData);
+            });
+        });
+
+        function openCarEditModal(carData) {
+            document.getElementById('car-id').value = carData.id;
+            document.getElementById('car-title').value = carData.title;
+            document.getElementById('car-description').value = carData.description || '';
+            document.getElementById('car-category').value = carData.category_id || '';
+            document.getElementById('car-price').value = carData.price;
+            document.getElementById('car-image-url').value = carData.image_url || '';
+            
+            document.getElementById('car-edit-modal-title').textContent = `Modifier "${carData.title}"`;
+            carEditModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCarEditModalFunc() {
+            carEditModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        if (closeCarEditModal) {
+            closeCarEditModal.addEventListener('click', closeCarEditModalFunc);
+        }
+
+        if (cancelCarEdit) {
+            cancelCarEdit.addEventListener('click', closeCarEditModalFunc);
+        }
+
+        carEditModal.addEventListener('click', (e) => {
+            if (e.target === carEditModal) closeCarEditModalFunc();
+        });
+
+        // Soumission du formulaire de modification
+        if (carEditForm) {
+            carEditForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveCarChanges();
+            });
+        }
+
+        async function saveCarChanges() {
+            const formData = new FormData(carEditForm);
+            const saveButton = document.getElementById('save-car-changes');
+            const originalText = saveButton.innerHTML;
+
+            try {
+                saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+                saveButton.disabled = true;
+
+                const response = await fetch('./modules/dashboard/update_car.php', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification(result.message, 'success');
+                    setTimeout(() => {
+                        closeCarEditModalFunc();
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification(result.message || 'Erreur lors de la mise à jour', 'error');
+                    saveButton.innerHTML = originalText;
+                    saveButton.disabled = false;
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showNotification('Erreur réseau - Vérifiez votre connexion', 'error');
+                saveButton.innerHTML = originalText;
+                saveButton.disabled = false;
+            }
+        }
+
+        // === MODAL DE STATUT ===
+        carStatusButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                currentCarId = this.getAttribute('data-car-id');
+                currentCarTitle = this.getAttribute('data-car-title');
+                currentCarStatus = this.getAttribute('data-car-current-status');
+                
+                document.getElementById('car-status-message').textContent = 
+                    `Êtes-vous sûr de vouloir changer le statut de "${currentCarTitle}" ?`;
+                
+                // Définir la valeur actuelle dans le select
+                document.getElementById('new-car-status').value = currentCarStatus;
+                
+                openCarStatusModal();
+            });
+        });
+
+        function openCarStatusModal() {
+            carStatusModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCarStatusModalFunc() {
+            carStatusModal.classList.remove('active');
+            document.body.style.overflow = '';
+            currentCarId = null;
+            currentCarTitle = null;
+            currentCarStatus = null;
+        }
+
+        if (closeCarStatusModal) {
+            closeCarStatusModal.addEventListener('click', closeCarStatusModalFunc);
+        }
+
+        if (cancelCarStatus) {
+            cancelCarStatus.addEventListener('click', closeCarStatusModalFunc);
+        }
+
+        carStatusModal.addEventListener('click', (e) => {
+            if (e.target === carStatusModal) closeCarStatusModalFunc();
+        });
+
+        // Confirmation changement de statut
+        if (confirmCarStatus) {
+            confirmCarStatus.addEventListener('click', async function() {
+                if (!currentCarId) return;
+
+                const button = this;
+                const originalText = button.innerHTML;
+                const newStatus = document.getElementById('new-car-status').value;
+
+                try {
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changement...';
+                    button.disabled = true;
+
+                    const response = await fetch('./modules/dashboard/update_car_status.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `car_id=${currentCarId}&status=${newStatus}`
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showNotification(result.message, 'success');
+                        closeCarStatusModalFunc();
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showNotification(result.message || 'Erreur lors du changement de statut', 'error');
+                        resetButton(button, originalText);
+                    }
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur réseau - Vérifiez votre connexion', 'error');
+                    resetButton(button, originalText);
+                }
+            });
+        }
+
+        // === MODAL DE SUPPRESSION ===
+        carDeleteButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                currentCarId = this.getAttribute('data-car-id');
+                currentCarTitle = this.getAttribute('data-car-title');
+                
+                document.getElementById('car-delete-message').textContent = 
+                    `Êtes-vous sûr de vouloir supprimer la voiture "${currentCarTitle}" ?`;
+                
+                openCarDeleteModal();
+            });
+        });
+
+        function openCarDeleteModal() {
+            carDeleteModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCarDeleteModalFunc() {
+            carDeleteModal.classList.remove('active');
+            document.body.style.overflow = '';
+            currentCarId = null;
+            currentCarTitle = null;
+        }
+
+        if (closeCarDeleteModal) {
+            closeCarDeleteModal.addEventListener('click', closeCarDeleteModalFunc);
+        }
+
+        if (cancelCarDelete) {
+            cancelCarDelete.addEventListener('click', closeCarDeleteModalFunc);
+        }
+
+        carDeleteModal.addEventListener('click', (e) => {
+            if (e.target === carDeleteModal) closeCarDeleteModalFunc();
+        });
+
+        // Confirmation suppression
+        if (confirmCarDelete) {
+            confirmCarDelete.addEventListener('click', async function() {
+                if (!currentCarId) return;
+
+                const button = this;
+                const originalText = button.innerHTML;
+
+                try {
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Suppression...';
+                    button.disabled = true;
+                    button.classList.add('btn-loading');
+
+                    const response = await fetch('./modules/dashboard/delete_car.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `car_id=${currentCarId}`
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showNotification(result.message, 'success');
+                        closeCarDeleteModalFunc();
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showNotification(result.message || 'Erreur lors de la suppression', 'error');
+                        resetButton(button, originalText);
+                    button.classList.remove('btn-loading');
+                    }
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    showNotification('Erreur réseau - Vérifiez votre connexion', 'error');
+                    resetButton(button, originalText);
+                    button.classList.remove('btn-loading');
+                }
+            });
+        }
+
+        function resetButton(button, originalText) {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+
+        // Touche Échap pour tous les modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (carEditModal.classList.contains('active')) closeCarEditModalFunc();
+                if (carStatusModal.classList.contains('active')) closeCarStatusModalFunc();
+                if (carDeleteModal.classList.contains('active')) closeCarDeleteModalFunc();
+            }
+        });
+    });
     </script>
 </body>
 </html>

@@ -1,3 +1,4 @@
+ <?php $PageName = 'Accueil'; ?>
  <?php include 'includes/header.php'; ?>
 
     <!-- CONTENU PRINCIPAL -->

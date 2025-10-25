@@ -2,7 +2,7 @@
 
     // cars_view.php
     require_once 'config/config.php';
-
+    $PageName = 'Voitures';
     // Paramètres de pagination
     $carsPerPage = 8;
     $currentPage = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;

@@ -186,17 +186,19 @@ clearSuccess();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ModernSite - Site Web Moderne</title>
+    <title><?php echo htmlspecialchars($PageName); ?> - Site Web Moderne</title>
     <!-- Bootstrap CSS -->
     <!-- <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"> -->
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- CSS Personnalisé (doit être après Bootstrap pour pouvoir le surcharger) -->
     <link rel="stylesheet" href="assets/css/style.css">
-
+    <?php if (isset($PageName) && $PageName === 'dashboard'): ?>
+        <link rel="stylesheet" href="assets/css/Dash_style.css">
+    <?php endif; ?>
 </head>
 <body>
-    <!-- HEADER -->
+   <!-- HEADER -->
     <header>
         <div class="container header-container">
             <div class="logo">
@@ -217,8 +219,23 @@ clearSuccess();
 
             <div class="auth-buttons">
                 <?php if ($isLoggedIn): ?>
-                    <span class="welcome-text">Bonjour, <?php echo htmlspecialchars($userName); ?></span>
-                    <a href="./modules/auth/logout.php" class="btn btn-secondary">Déconnexion</a>
+                    <div class="user-dropdown">
+                        <button class="user-dropdown-btn">
+                            <i class="fas fa-user-circle"></i>
+                            <span><?php echo htmlspecialchars($userName); ?></span>
+                            <i class="fas fa-chevron-down dropdown-arrow"></i>
+                        </button>
+                        <div class="user-dropdown-content">
+                            <a href="profile.php" class="dropdown-item">
+                                <i class="fas fa-user"></i>
+                                <span>Profil</span>
+                            </a>
+                            <a href="./modules/auth/logout.php" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Déconnexion</span>
+                            </a>
+                        </div>
+                    </div>
                 <?php else: ?>
                     <button class="btn btn-secondary" id="login-btn">Connexion</button>
                     <button class="btn btn-primary" id="register-btn">Inscription</button>
@@ -234,18 +251,30 @@ clearSuccess();
 
         <nav class="mobile-nav" id="mobile-nav">
             <ul>
-                <li><a href="index.php">Accueil</a></li>
-                <li><a href="#services">Services</a></li>
-                <li><a href="#apropos">À propos</a></li>
-                <li><a href="#contact">Contact</a></li>
+                    <li><a href="index.php">Accueil</a></li>
+                    <li><a href="cars_view.php">Voitures</a></li>
+                    <li><a href="#contact">Contact</a></li>
+                    <li><a href="#apropos">À propos</a></li>
                     <?php if ( $isLoggedIn &&($role === 'manager' || $role === 'admin')): ?>
                         <li><a href="dashboard.php">Dashboard</a></li>
                     <?php endif; ?>
             </ul>
             <div class="mobile-auth-buttons">
                 <?php if ($isLoggedIn): ?>
-                    <div class="welcome-text">Bonjour, <?php echo htmlspecialchars($userName); ?></div>
-                    <a href="./modules/auth/logout.php" class="btn btn-secondary">Déconnexion</a>
+                    <div class="mobile-user-menu">
+                        <div class="mobile-user-info">
+                            <i class="fas fa-user-circle"></i>
+                            <span><?php echo htmlspecialchars($userName); ?></span>
+                        </div>
+                        <a href="profile.php" class="btn btn-secondary mobile-profile-btn">
+                            <i class="fas fa-user"></i>
+                            <span>Profil</span>
+                        </a>
+                        <a href="./modules/auth/logout.php" class="btn btn-primary mobile-logout-btn">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Déconnexion</span>
+                        </a>
+                    </div>
                 <?php else: ?>
                     <button class="btn btn-secondary" id="mobile-login-btn">Connexion</button>
                     <button class="btn btn-primary" id="mobile-register-btn">Inscription</button>
