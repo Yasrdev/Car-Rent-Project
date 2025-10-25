@@ -1,4 +1,3 @@
-
 <?php
 require_once('../../config/config.php');
 
@@ -23,8 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        // Vérifier si la voiture existe
-        $stmt = $pdo->prepare("SELECT title FROM cars WHERE id = ?");
+        // Récupérer les informations de la voiture
+        $stmt = $pdo->prepare("SELECT title, image_url FROM cars WHERE id = ?");
         $stmt->execute([$car_id]);
         $car = $stmt->fetch();
 
@@ -34,7 +33,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
 
-        // Supprimer la voiture
+        // Supprimer l'image du dossier uploads si elle existe
+        $image_url = $car['image_url'];
+        if (!empty($image_url) && strpos($image_url, 'uploads/') === 0) {
+            $image_path = '../../' . $image_url; // Chemin complet vers l'image
+            
+            // Vérifier si le fichier existe et le supprimer
+            if (file_exists($image_path)) {
+                if (unlink($image_path)) {
+                    error_log("Image supprimée: " . $image_path);
+                } else {
+                    error_log("Erreur lors de la suppression de l'image: " . $image_path);
+                }
+            }
+        }
+
+        // Supprimer la voiture de la base de données
         $stmt = $pdo->prepare("DELETE FROM cars WHERE id = ?");
         $success = $stmt->execute([$car_id]);
 

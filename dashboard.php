@@ -1,4 +1,3 @@
-
 <?php
 require_once('./config/config.php');
 $PageName = 'dashboard';
@@ -151,7 +150,7 @@ try {
                         </div>
                         <div class="stat-info">
                             <h3>
-                                <?php $totalUser = $pdo->query("SELECT COUNT(*) as total FROM users WHERE status = 'active'");
+                                <?php $totalUser = $pdo->query("SELECT COUNT(*) as total FROM users WHERE role = 'user' and status = 'active'");
                                       $stats['total'] = $totalUser->fetch()['total']; 
                                       echo $stats['total']; 
                                 ?>
@@ -168,7 +167,7 @@ try {
                                       $stats['total'] = $totalEEmp->fetch()['total']; 
                                       echo $stats['total']; 
                                 ?></h3>
-                            <p>Employés</p>
+                            <p>Employés actifs</p>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -207,27 +206,22 @@ try {
                 <?php
                 // Statistiques des utilisateurs
                 $stats = [
-                    'total' => 0,
-                    'admins' => 0,
-                    'managers' => 0,
                     'users' => 0,
                     'active' => 0,
                     'inactive' => 0
                 ];
                 
                 try {
-                    $totalStmt = $pdo->query("SELECT COUNT(*) as total FROM users");
+                    $totalStmt = $pdo->query("SELECT COUNT(*) as total FROM users WHERE role = 'user'");
                     $stats['total'] = $totalStmt->fetch()['total'];
                     
-                    $roleStmt = $pdo->query("SELECT role, COUNT(*) as count FROM users GROUP BY role");
-                    while ($role = $roleStmt->fetch()) {
-                        $stats[$role['role'] . 's'] = $role['count'];
-                    }
                     
-                    $statusStmt = $pdo->query("SELECT status, COUNT(*) as count FROM users GROUP BY status");
-                    while ($status = $statusStmt->fetch()) {
-                        $stats[$status['status']] = $status['count'];
-                    }
+                    $statusStmtactive = $pdo->query("SELECT status, COUNT(*) as countactive FROM users WHERE role = 'user' and status = 'active'");
+                    $stats['active'] = $statusStmtactive->fetch()['countactive'];
+
+                    $statusStmtinactive = $pdo->query("SELECT status, COUNT(*) as countinactive FROM users WHERE role = 'user' and status = 'inactive'");
+                    $stats['inactive'] = $statusStmtinactive->fetch()['countinactive'];
+
                 } catch (PDOException $e) {
                     error_log("Erreur statistiques utilisateurs: " . $e->getMessage());
                 }
@@ -235,19 +229,15 @@ try {
                 
                 <div class="stat-badge total">
                     <i class="fas fa-users"></i>
-                    <span>Total: <?php echo $stats['total']; ?></span>
+                    <span>Total: <?php echo $stats['users']; ?></span>
                 </div>
-                <div class="stat-badge admins">
-                    <i class="fas fa-crown"></i>
-                    <span>Admins: <?php echo $stats['admins']; ?></span>
-                </div>
-                <div class="stat-badge managers">
-                    <i class="fas fa-user-tie"></i>
-                    <span>Managers: <?php echo $stats['managers']; ?></span>
-                </div>
-                <div class="stat-badge users">
+                <div class="stat-badge active">
                     <i class="fas fa-user"></i>
-                    <span>Users: <?php echo $stats['users']; ?></span>
+                    <span>actif: <?php echo $stats['active']; ?></span>
+                </div>
+                <div class="stat-badge inactive">
+                    <i class="fas fa-user"></i>
+                    <span>Inactif: <?php echo $stats['inactive']; ?></span>
                 </div>
             </div>
         </div>
@@ -256,7 +246,7 @@ try {
         // Récupérer tous les utilisateurs
         $users = [];
         try {
-            $usersStmt = $pdo->query("SELECT id, first_name, last_name, email, role, status, date_creation FROM users ORDER BY date_creation DESC");
+            $usersStmt = $pdo->query("SELECT id, first_name, last_name, email, role, status, date_creation FROM users WHERE role = 'user' ORDER BY date_creation DESC");
             $users = $usersStmt->fetchAll();
         } catch (PDOException $e) {
             error_log("Erreur lors de la récupération des utilisateurs: " . $e->getMessage());
@@ -592,7 +582,37 @@ try {
 
             <!-- Cars Section -->
             <div class="content-section" id="cars">
-                <h2 class="section-title"><i class="fas fa-car"></i> Gestion des voitures</h2>
+                                <div class="users-section-header">
+                    <h2 class="section-title"><i class="fas fa-car"></i> Gestion des voitures</h2>
+                    <div class="users-stats">
+                        <div class="stat-badge total">
+                            <i class="fas fa-car"></i>
+                            <span>Total: <?php echo $totalCars; ?></span>
+                        </div>
+                        <div class="stat-badge available">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Disponibles: 
+                                <?php 
+                                $availableCars = $pdo->query("SELECT COUNT(*) as count FROM cars WHERE status = 'available'")->fetch()['count'];
+                                echo $availableCars;
+                                ?>
+                            </span>
+                        </div>
+                        <div class="stat-badge reserved">
+                            <i class="fas fa-times-circle"></i>
+                            <span>Réservées: 
+                                <?php 
+                                $reservedCars = $pdo->query("SELECT COUNT(*) as count FROM cars WHERE status = 'unavailable'")->fetch()['count'];
+                                echo $reservedCars;
+                                ?>
+                            </span>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" id="add-car-btn">
+                        <i class="fas fa-plus"></i>
+                        Ajouter une voiture
+                    </button>
+                </div>
                 
                 <!-- Section de filtrage -->
                 <section class="filter-section">
@@ -688,7 +708,7 @@ try {
                 <!-- Information de pagination -->
                 <div class="pagination-info-dashboard">
                     Affichage des voitures <?php echo $offset + 1; ?> à <?php echo min($offset + count($cars), $totalCars); ?> sur <?php echo $totalCars; ?> au total
-                </div>
+                </div><br>
 
                 <!-- Grille des voitures -->
                 <div class="cars-grid-dashboard">
@@ -704,7 +724,7 @@ try {
                         <?php foreach ($cars as $car): ?>
                             <div class="car-card-dashboard">
                                 <div class="car-image-container-dashboard">
-                                    <img src="<?php echo htmlspecialchars($car['image_url'] ?: 'https://picsum.photos/400/300?random=' . $car['id']); ?>" 
+                                    <img src="<?php echo htmlspecialchars($car['image_url']); ?>" 
                                          alt="<?php echo htmlspecialchars($car['title']); ?>" 
                                          class="car-image-dashboard">
                                     <div class="status-badge-dashboard <?php echo $car['status'] === 'available' ? 'available' : 'unavailable'; ?>">
@@ -865,34 +885,31 @@ try {
         </div>
     </div>
 
-
-        <!-- Modal de modification voiture -->
-    <div class="modal-overlay" id="car-edit-modal">
+         <!-- Modal d'ajout voiture -->
+    <div class="modal-overlay" id="car-add-modal">
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
-                <h3 class="modal-title" id="car-edit-modal-title">Modifier la voiture</h3>
-                <button class="close-modal" id="close-car-edit-modal">&times;</button>
+                <h3 class="modal-title">Ajouter une nouvelle voiture</h3>
+                <button class="close-modal" id="close-car-add-modal">&times;</button>
             </div>
             
             <div class="modal-body">
-                <form id="car-edit-form">
-                    <input type="hidden" id="car-id" name="car_id">
-                    
+                <form id="car-add-form" enctype="multipart/form-data">
                     <div class="form-group">
-                        <label for="car-title">Titre *</label>
-                        <input type="text" id="car-title" name="title" required>
+                        <label for="add-car-title">Titre *</label>
+                        <input type="text" id="add-car-title" name="title" required>
                     </div>
                     
                     <div class="form-group">
-                        <label for="car-description">Description</label>
-                        <textarea id="car-description" name="description" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                        <label for="add-car-description">Description</label>
+                        <textarea id="add-car-description" name="description" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
                     </div>
                     
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="car-category">Catégorie *</label>
+                            <label for="add-car-category">Catégorie *</label>
                             <div class="select-container">
-                                <select id="car-category" name="category_id" required class="filter-select">
+                                <select id="add-car-category" name="category_id" required class="filter-select">
                                     <option value="">Sélectionner une catégorie</option>
                                     <?php foreach ($categories as $category): ?>
                                         <option value="<?php echo $category['id']; ?>">
@@ -905,26 +922,131 @@ try {
                         </div>
                         
                         <div class="form-group">
-                            <label for="car-price">Prix (€/jour) *</label>
-                            <input type="number" id="car-price" name="price" step="0.01" min="0" required>
+                            <label for="add-car-price">Prix (€/jour) *</label>
+                            <input type="number" id="add-car-price" name="price" step="0.01" min="0" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="add-car-status">Statut *</label>
+                        <div class="select-container">
+                            <select id="add-car-status" name="status" required class="filter-select">
+                                <option value="available">Disponible</option>
+                                <option value="unavailable">Réservé</option>
+                            </select>
+                            <i class="fas fa-chevron-down select-arrow"></i>
                         </div>
                     </div>
                     
                     <div class="form-group">
-                        <label for="car-image-url">URL de l'image</label>
-                        <input type="url" id="car-image-url" name="image_url" placeholder="https://example.com/image.jpg">
+                        <label for="car-image">Image de la voiture *</label>
+                        <div class="file-upload-container">
+                            <input type="file" id="car-image" name="car_image" accept="image/*" required 
+                                   style="width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 4px; background: #f9f9f9;">
+                            <div class="file-upload-info">
+                                <small>Formats acceptés: JPG, PNG, GIF (Max: 2MB)</small>
+                            </div>
+                        </div>
+                        <div id="image-preview" style="margin-top: 10px; display: none;">
+                            <img id="preview-img" src="#" alt="Aperçu" style="max-width: 100%; max-height: 200px; border-radius: 4px;">
+                        </div>
                     </div>
-                    
+              
                     <div class="form-actions" style="display: flex; gap: 10px; margin-top: 20px;">
-                        <button type="button" class="btn btn-secondary" id="cancel-car-edit">Annuler</button>
-                        <button type="submit" class="btn btn-primary" id="save-car-changes">
-                            <i class="fas fa-save"></i> Enregistrer les modifications
+                        <button type="button" class="btn btn-secondary" id="cancel-car-add">Annuler</button>
+                        <button type="submit" class="btn btn-primary" id="save-new-car">
+                            <i class="fas fa-plus"></i> Ajouter la voiture
                         </button>
                     </div>
                 </form>
             </div>
         </div>
+    </div>                    
+
+        <!-- Modal de modification voiture -->
+<div class="modal-overlay" id="car-edit-modal">
+    <div class="modal" style="max-width: 600px;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="car-edit-modal-title">Modifier la voiture</h3>
+            <button class="close-modal" id="close-car-edit-modal">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <form id="car-edit-form" enctype="multipart/form-data">
+                <input type="hidden" id="car-id" name="car_id">
+                
+                <div class="form-group">
+                    <label for="car-title">Titre *</label>
+                    <input type="text" id="car-title" name="title" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="car-description">Description</label>
+                    <textarea id="car-description" name="description" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="car-category">Catégorie *</label>
+                        <div class="select-container">
+                            <select id="car-category" name="category_id" required class="filter-select">
+                                <option value="">Sélectionner une catégorie</option>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?php echo $category['id']; ?>">
+                                        <?php echo htmlspecialchars($category['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <i class="fas fa-chevron-down select-arrow"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="car-price">Prix (€/jour) *</label>
+                        <input type="number" id="car-price" name="price" step="0.01" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="car-status">Statut *</label>
+                    <div class="select-container">
+                        <select id="car-status" name="status" required class="filter-select">
+                            <option value="available">Disponible</option>
+                            <option value="unavailable">Réservé</option>
+                        </select>
+                        <i class="fas fa-chevron-down select-arrow"></i>
+                    </div>
+                </div>
+                
+                <!-- Section image avec upload -->
+                <div class="form-group">
+                    <label for="car-image-edit">Image de la voiture</label>
+                    <div class="file-upload-container">
+                        <input type="file" id="car-image-edit" name="car_image" accept="image/*" 
+                               style="width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 4px; background: #f9f9f9;">
+                        <div class="file-upload-info">
+                            <small>Formats acceptés: JPG, PNG, GIF (Max: 2MB) - Laissez vide pour conserver l'image actuelle</small>
+                        </div>
+                    </div>
+                    <div id="image-preview-edit" style="margin-top: 10px;">
+                        <img id="preview-img-edit" src="" alt="Aperçu" style="max-width: 100%; max-height: 200px; border-radius: 4px;">
+                        <div id="current-image-info" style="margin-top: 5px; font-size: 0.8rem; color: #666;"></div>
+                    </div>
+                    
+                    <!-- Champ caché pour l'URL actuelle de l'image -->
+                    <input type="hidden" id="current-image-url" name="current_image_url">
+                </div>
+                
+                <div class="form-actions" style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="cancel-car-edit">Annuler</button>
+                    <button type="submit" class="btn btn-primary" id="save-car-changes">
+                        <i class="fas fa-save"></i> Enregistrer les modifications
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
+</div>
 
     <!-- Modal de changement de statut voiture -->
     <div class="modal-overlay" id="car-status-modal">
@@ -1061,8 +1183,7 @@ try {
                             <div class="form-group select-with-badge">
                                 <label for="user-role" class="form-label">
                                     <i class="fas fa-user-tag"></i>
-                                    Rôle *
-                                </label>
+                                    Rôle *</label>
                                 <div class="select-wrapper">
                                     <select id="user-role" name="role" required class="modern-select">
                                         <option value="user">👤 Utilisateur</option>
@@ -1079,8 +1200,7 @@ try {
                             <div class="form-group select-with-badge">
                                 <label for="user-status" class="form-label">
                                     <i class="fas fa-user-check"></i>
-                                    Statut *
-                                </label>
+                                    Statut *</label>
                                 <div class="select-wrapper">
                                     <select id="user-status" name="status" required class="modern-select">
                                         <option value="active">🟢 Actif</option>
@@ -1109,7 +1229,6 @@ try {
                 </div>
             </div>
         </div>
-
 
         <!-- Modal de confirmation de suppression -->
         <div class="modal-overlay" id="delete-modal">
@@ -1155,9 +1274,6 @@ try {
                 </div>
             </div>
         </div>
-
-         
-
 
 <script src="./assets/js/main.js"></script>
     <script>
@@ -1219,9 +1335,6 @@ try {
             const initialSection = sectionParam || 'dashboard';
             updateActiveSection(initialSection);
         });
-
-
-
 
         // Gestion du modal utilisateur - Version responsive
         document.addEventListener('DOMContentLoaded', function() {
@@ -1415,7 +1528,6 @@ try {
             }, 5000);
         }
 
-
         // ===== GESTION DE LA SUPPRESSION D'UTILISATEUR =====
         document.addEventListener('DOMContentLoaded', function() {
             const deleteModal = document.getElementById('delete-modal');
@@ -1551,60 +1663,6 @@ try {
             // car ils utilisent les mêmes classes CSS et structure HTML
         });
 
-        // Fonction utilitaire pour afficher les notifications
-        function showNotification(message, type = 'info') {
-            // Utilise la même fonction de notification que pour les utilisateurs
-            const notification = document.createElement('div');
-            notification.className = `custom-notification ${type}`;
-            
-            const icons = {
-                'success': 'fa-check-circle',
-                'error': 'fa-exclamation-circle',
-                'info': 'fa-info-circle',
-                'warning': 'fa-exclamation-triangle'
-            };
-            
-            notification.innerHTML = `
-                <div class="notification-content">
-                    <i class="fas ${icons[type] || 'fa-info-circle'}"></i>
-                    <span>${message}</span>
-                </div>
-                <button class="notification-close" onclick="this.parentElement.remove()">
-                    <i class="fas fa-times"></i>
-                </button>
-            `;
-            
-            document.body.appendChild(notification);
-            
-            // Style responsive pour la notification
-            if (window.innerWidth <= 768) {
-                notification.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    left: 10px;
-                    right: 10px;
-                    max-width: none;
-                    z-index: 9999;
-                `;
-            }
-            
-            setTimeout(() => {
-                notification.classList.add('show');
-            }, 10);
-            
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.classList.remove('show');
-                    setTimeout(() => {
-                        if (notification.parentNode) {
-                            notification.parentNode.removeChild(notification);
-                        }
-                    }, 300);
-                }
-            }, 5000);
-        }
-
-
         // ===== GESTION DES VOITURES =====
     document.addEventListener('DOMContentLoaded', function() {
         // Modal de modification voiture
@@ -1613,6 +1671,23 @@ try {
         const cancelCarEdit = document.getElementById('cancel-car-edit');
         const carEditForm = document.getElementById('car-edit-form');
         const carEditButtons = document.querySelectorAll('.btn-edit');
+        
+        // Éléments pour l'aperçu d'image dans le modal de modification
+        const carImageInputEdit = document.getElementById('car-image-edit');
+        const imagePreviewEdit = document.getElementById('image-preview-edit');
+        const previewImgEdit = document.getElementById('preview-img-edit');
+        const currentImageInfo = document.getElementById('current-image-info');
+        const currentImageUrlInput = document.getElementById('current-image-url');
+
+        //Modal de l ajout voiture
+        const carAddModal = document.getElementById('car-add-modal');
+        const closeCarAddModal = document.getElementById('close-car-add-modal');
+        const cancelCarAdd = document.getElementById('cancel-car-add');
+        const carAddForm = document.getElementById('car-add-form');
+        const addCarBtn = document.getElementById('add-car-btn');
+        const carImageInput = document.getElementById('car-image');
+        const imagePreview = document.getElementById('image-preview');
+        const previewImg = document.getElementById('preview-img');
 
         // Modal de statut voiture
         const carStatusModal = document.getElementById('car-status-modal');
@@ -1632,6 +1707,120 @@ try {
         let currentCarTitle = null;
         let currentCarStatus = null;
 
+        // === MODAL D'AJOUT ===
+        addCarBtn.addEventListener('click', function() {
+            openCarAddModal();
+        });
+
+        function openCarAddModal() {
+            carAddForm.reset();
+            imagePreview.style.display = 'none';
+            carAddModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeCarAddModalFunc() {
+            carAddModal.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        if (closeCarAddModal) {
+            closeCarAddModal.addEventListener('click', closeCarAddModalFunc);
+        }
+
+        if (cancelCarAdd) {
+            cancelCarAdd.addEventListener('click', closeCarAddModalFunc);
+        }
+
+        carAddModal.addEventListener('click', (e) => {
+            if (e.target === carAddModal) closeCarAddModalFunc();
+        });
+
+        // Aperçu de l'image pour l'ajout
+        carImageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    imagePreview.style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                imagePreview.style.display = 'none';
+            }
+        });
+
+        // Soumission du formulaire d'ajout
+        if (carAddForm) {
+            carAddForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                addNewCar();
+            });
+        }
+
+        async function addNewCar() {
+            const formData = new FormData(carAddForm);
+            const saveButton = document.getElementById('save-new-car');
+            const originalText = saveButton.innerHTML;
+
+            try {
+                saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Ajout en cours...';
+                saveButton.disabled = true;
+
+                const response = await fetch('./modules/dashboard/add_car.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification(result.message, 'success');
+                    setTimeout(() => {
+                        closeCarAddModalFunc();
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification(result.message || 'Erreur lors de l\'ajout', 'error');
+                    saveButton.innerHTML = originalText;
+                    saveButton.disabled = false;
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showNotification('Erreur réseau - Vérifiez votre connexion', 'error');
+                saveButton.innerHTML = originalText;
+                saveButton.disabled = false;
+            }
+        }
+
+        // === APERÇU DE L'IMAGE DANS LE MODAL DE MODIFICATION ===
+        carImageInputEdit.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImgEdit.src = e.target.result;
+                    imagePreviewEdit.style.display = 'block';
+                    currentImageInfo.innerHTML = '<em>Nouvelle image sélectionnée</em>';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                // Si aucun fichier n'est sélectionné, revenir à l'image actuelle
+                const currentUrl = currentImageUrlInput.value;
+                if (currentUrl) {
+                    previewImgEdit.src = currentUrl;
+                    currentImageInfo.innerHTML = '<em>Image actuelle</em>';
+                } else {
+                    imagePreviewEdit.style.display = 'none';
+                }
+            }
+        });
+
         // === MODAL DE MODIFICATION ===
         carEditButtons.forEach(button => {
             button.addEventListener('click', function() {
@@ -1646,7 +1835,23 @@ try {
             document.getElementById('car-description').value = carData.description || '';
             document.getElementById('car-category').value = carData.category_id || '';
             document.getElementById('car-price').value = carData.price;
-            document.getElementById('car-image-url').value = carData.image_url || '';
+            document.getElementById('car-status').value = carData.status || 'available';
+            
+            // Gestion de l'image actuelle
+            const currentImageUrl = carData.image_url || '';
+            currentImageUrlInput.value = currentImageUrl;
+            
+            if (currentImageUrl) {
+                previewImgEdit.src = currentImageUrl;
+                imagePreviewEdit.style.display = 'block';
+                currentImageInfo.innerHTML = '<em>Image actuelle</em>';
+            } else {
+                imagePreviewEdit.style.display = 'none';
+                currentImageInfo.innerHTML = '';
+            }
+            
+            // Réinitialiser le champ fichier
+            carImageInputEdit.value = '';
             
             document.getElementById('car-edit-modal-title').textContent = `Modifier "${carData.title}"`;
             carEditModal.classList.add('active');
@@ -1689,10 +1894,7 @@ try {
 
                 const response = await fetch('./modules/dashboard/update_car.php', {
                     method: 'POST',
-                    body: formData,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    body: formData
                 });
 
                 if (!response.ok) {
@@ -1872,7 +2074,7 @@ try {
                     } else {
                         showNotification(result.message || 'Erreur lors de la suppression', 'error');
                         resetButton(button, originalText);
-                    button.classList.remove('btn-loading');
+                        button.classList.remove('btn-loading');
                     }
                 } catch (error) {
                     console.error('Erreur:', error);
@@ -1894,6 +2096,7 @@ try {
                 if (carEditModal.classList.contains('active')) closeCarEditModalFunc();
                 if (carStatusModal.classList.contains('active')) closeCarStatusModalFunc();
                 if (carDeleteModal.classList.contains('active')) closeCarDeleteModalFunc();
+                if (carAddModal.classList.contains('active')) closeCarAddModalFunc();
             }
         });
     });

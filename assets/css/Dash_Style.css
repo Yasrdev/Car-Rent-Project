@@ -931,10 +931,8 @@ tr:hover {
 }
 
 .stat-badge.total { color: #3498db; }
-.stat-badge.admins { color: #e74c3c; }
-.stat-badge.managers { color: #3498db; }
-.stat-badge.users { color: #2ecc71; }
-
+.stat-badge.active { color: #2ecc71; }
+.stat-badge.inactive { color: #cc2e2e; }
 /* ===== MEDIA QUERIES AMÉLIORÉES ===== */
 
 /* Tablettes */
@@ -1556,4 +1554,78 @@ tr:hover {
 /* Styles pour les statistiques des employés */
 .stat-badge.active {
     color: #27ae60;
+}
+
+
+
+/* Moadl de l ajout de voiture */
+
+/* Bouton d'ajout */
+#add-car-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+/* Container d'upload de fichier */
+.file-upload-container {
+    margin-bottom: 0.5rem;
+}
+
+.file-upload-info {
+    margin-top: 0.5rem;
+    color: #6c757d;
+}
+
+.file-upload-info small {
+    font-size: 0.8rem;
+}
+
+/* Aperçu d'image */
+#image-preview-edit ,#image-preview {
+    border: 2px dashed #e1e5e9;
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    background: #f8f9fa;
+}
+
+#preview-img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 4px;
+}
+
+#current-image-info {
+    text-align: center;
+    font-style: italic;
+}
+
+/* Styles pour les statistiques des voitures */
+.stat-badge.available {
+    color: #27ae60;
+}
+
+.stat-badge.reserved {
+    color: #e74c3c;
+}
+
+/* Responsive pour le header des voitures */
+@media (max-width: 768px) {
+    .users-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    #add-car-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .users-stats {
+        width: 100%;
+        justify-content: space-between;
+    }
 }
