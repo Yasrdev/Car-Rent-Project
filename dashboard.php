@@ -1023,9 +1023,9 @@ try {
                     <label for="car-image-edit">Image de la voiture</label>
                     <div class="file-upload-container">
                         <input type="file" id="car-image-edit" name="car_image" accept="image/*" 
-                               style="width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 4px; background: #f9f9f9;">
+                            style="width: 100%; padding: 10px; border: 2px dashed #ddd; border-radius: 4px; background: #f9f9f9;">
                         <div class="file-upload-info">
-                            <small>Formats acceptés: JPG, PNG, GIF (Max: 2MB) - Laissez vide pour conserver l'image actuelle</small>
+                            <small>Formats acceptés: JPG, PNG, GIF (Max: 2MB) - L'ancienne image sera supprimée si vous sélectionnez une nouvelle image</small>
                         </div>
                     </div>
                     <div id="image-preview-edit" style="margin-top: 10px;">
@@ -1800,63 +1800,64 @@ try {
 
         // === APERÇU DE L'IMAGE DANS LE MODAL DE MODIFICATION ===
         carImageInputEdit.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    previewImgEdit.src = e.target.result;
-                    imagePreviewEdit.style.display = 'block';
-                    currentImageInfo.innerHTML = '<em>Nouvelle image sélectionnée</em>';
-                }
-                reader.readAsDataURL(file);
-            } else {
-                // Si aucun fichier n'est sélectionné, revenir à l'image actuelle
-                const currentUrl = currentImageUrlInput.value;
-                if (currentUrl) {
-                    previewImgEdit.src = currentUrl;
-                    currentImageInfo.innerHTML = '<em>Image actuelle</em>';
-                } else {
-                    imagePreviewEdit.style.display = 'none';
-                }
-            }
-        });
-
-        // === MODAL DE MODIFICATION ===
-        carEditButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const carData = JSON.parse(this.getAttribute('data-car-data'));
-                openCarEditModal(carData);
-            });
-        });
-
-        function openCarEditModal(carData) {
-            document.getElementById('car-id').value = carData.id;
-            document.getElementById('car-title').value = carData.title;
-            document.getElementById('car-description').value = carData.description || '';
-            document.getElementById('car-category').value = carData.category_id || '';
-            document.getElementById('car-price').value = carData.price;
-            document.getElementById('car-status').value = carData.status || 'available';
-            
-            // Gestion de l'image actuelle
-            const currentImageUrl = carData.image_url || '';
-            currentImageUrlInput.value = currentImageUrl;
-            
-            if (currentImageUrl) {
-                previewImgEdit.src = currentImageUrl;
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewImgEdit.src = e.target.result;
                 imagePreviewEdit.style.display = 'block';
-                currentImageInfo.innerHTML = '<em>Image actuelle</em>';
+                currentImageInfo.innerHTML = '<em style="color: #e74c3c;">Nouvelle image sélectionnée - L\'ancienne image sera supprimée</em>';
+            }
+            reader.readAsDataURL(file);
+        } else {
+            // Si aucun fichier n'est sélectionné, revenir à l'image actuelle
+            const currentUrl = currentImageUrlInput.value;
+            if (currentUrl) {
+                previewImgEdit.src = currentUrl;
+                currentImageInfo.innerHTML = '<em style="color: #27ae60;">Image actuelle</em>';
             } else {
                 imagePreviewEdit.style.display = 'none';
                 currentImageInfo.innerHTML = '';
             }
-            
-            // Réinitialiser le champ fichier
-            carImageInputEdit.value = '';
-            
-            document.getElementById('car-edit-modal-title').textContent = `Modifier "${carData.title}"`;
-            carEditModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
         }
+    });
+
+    // === MODAL DE MODIFICATION ===
+    carEditButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const carData = JSON.parse(this.getAttribute('data-car-data'));
+            openCarEditModal(carData);
+        });
+    });
+
+    function openCarEditModal(carData) {
+        document.getElementById('car-id').value = carData.id;
+        document.getElementById('car-title').value = carData.title;
+        document.getElementById('car-description').value = carData.description || '';
+        document.getElementById('car-category').value = carData.category_id || '';
+        document.getElementById('car-price').value = carData.price;
+        document.getElementById('car-status').value = carData.status || 'available';
+        
+        // Gestion de l'image actuelle
+        const currentImageUrl = carData.image_url || '';
+        currentImageUrlInput.value = currentImageUrl;
+        
+        if (currentImageUrl) {
+            previewImgEdit.src = currentImageUrl;
+            imagePreviewEdit.style.display = 'block';
+            currentImageInfo.innerHTML = '<em style="color: #27ae60;">Image actuelle</em>';
+        } else {
+            imagePreviewEdit.style.display = 'none';
+            currentImageInfo.innerHTML = '';
+        }
+        
+        // Réinitialiser le champ fichier
+        carImageInputEdit.value = '';
+        
+        document.getElementById('car-edit-modal-title').textContent = `Modifier "${carData.title}"`;
+        carEditModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
 
         function closeCarEditModalFunc() {
             carEditModal.classList.remove('active');

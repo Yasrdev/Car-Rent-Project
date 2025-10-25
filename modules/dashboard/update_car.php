@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     try {
-        // Vérifier si la voiture existe
+        // Vérifier si la voiture existe et récupérer l'image actuelle
         $stmt = $pdo->prepare("SELECT id, image_url FROM cars WHERE id = ?");
         $stmt->execute([$car_id]);
         $car = $stmt->fetch();
@@ -53,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Gestion de l'upload d'image
         $image_url = $current_image_url; // Par défaut, on garde l'image actuelle
+        $oldImageToDelete = null;
 
         if (isset($_FILES['car_image']) && $_FILES['car_image']['error'] === UPLOAD_ERR_OK) {
             $uploadDir = '../../uploads/cars/';
@@ -89,14 +90,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (move_uploaded_file($_FILES['car_image']['tmp_name'], $uploadFile)) {
                 $image_url = './uploads/cars/' . $fileName;
                 
-                // Supprimer l'ancienne image si elle existe et n'est pas l'image par défaut
+                // Marquer l'ancienne image pour suppression si elle existe
                 if (!empty($car['image_url']) && 
-                    $car['image_url'] !== $current_image_url && 
+                    $car['image_url'] !== $image_url && 
                     strpos($car['image_url'], './uploads/cars/') !== false) {
-                    $oldImagePath = '../../' . ltrim($car['image_url'], './');
-                    if (file_exists($oldImagePath)) {
-                        unlink($oldImagePath);
-                    }
+                    $oldImageToDelete = $car['image_url'];
                 }
             } else {
                 $response['message'] = 'Erreur lors de l\'upload de l\'image';
@@ -118,9 +116,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ]);
 
         if ($success) {
+            // Supprimer l'ancienne image après la mise à jour réussie
+            if ($oldImageToDelete) {
+                $oldImagePath = '../../' . ltrim($oldImageToDelete, './');
+                if (file_exists($oldImagePath) && is_file($oldImagePath)) {
+                    unlink($oldImagePath);
+                }
+            }
+            
             $response['success'] = true;
             $response['message'] = 'Voiture mise à jour avec succès';
-            $response['image_url'] = $image_url; // Retourner la nouvelle URL d'image si nécessaire
+            $response['image_url'] = $image_url;
         } else {
             $response['message'] = 'Erreur lors de la mise à jour de la voiture';
         }
